@@ -1,12 +1,12 @@
 'use client';
 
 import * as React from 'react';
-import { Camera, Bell, Check, Clock, Pause, X } from 'lucide-react';
+import { Camera, Bell, Check, Clock, Pause, X, PlusCircle } from 'lucide-react';
 import { add, differenceInSeconds, parse } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import { AppHeader } from '@/components/app-header';
-import { ScanPrescriptionDialog } from '@/components/scan-prescription-dialog';
+import { AddPrescriptionDialog } from '@/components/add-prescription-dialog';
 import { EmptyState } from '@/components/empty-state';
 import { MedicationCard } from '@/components/medication-card';
 import type { Medication, MedicationStatus } from '@/lib/types';
@@ -16,12 +16,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Home() {
   const [medications, setMedications] = React.useState<Medication[]>([]);
-  const [isScanning, setIsScanning] = React.useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const { toast } = useToast();
   const spokenAlerts = React.useRef<Set<string>>(new Set());
 
-  const handleOpenScan = () => setIsScanning(true);
+  const handleOpenAddDialog = () => setIsAddDialogOpen(true);
 
   const handleGenerateDashboard = async (prescriptionText: string) => {
     if (!prescriptionText.trim()) {
@@ -36,7 +36,7 @@ export default function Home() {
     setIsLoading(true);
     setMedications([]);
     spokenAlerts.current.clear();
-    setIsScanning(false);
+    setIsAddDialogOpen(false);
 
     try {
       const result = await generateAiDashboard({ prescriptionText });
@@ -155,9 +155,9 @@ export default function Home() {
               <h1 className="text-3xl font-bold text-foreground tracking-tight">Medication Dashboard</h1>
               <p className="text-muted-foreground mt-1">Your daily medication schedule and tracker.</p>
             </div>
-            <Button size="lg" onClick={handleOpenScan}>
-              <Camera className="mr-2 h-5 w-5" />
-              Scan New Prescription
+            <Button size="lg" onClick={handleOpenAddDialog}>
+              <PlusCircle className="mr-2 h-5 w-5" />
+              Add New Prescription
             </Button>
           </div>
 
@@ -176,7 +176,7 @@ export default function Home() {
              </div>
           )}
 
-          {!isLoading && medications.length === 0 && <EmptyState onScan={handleOpenScan} />}
+          {!isLoading && medications.length === 0 && <EmptyState onAdd={handleOpenAddDialog} />}
           
           {!isLoading && medications.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -193,9 +193,9 @@ export default function Home() {
           )}
         </div>
       </main>
-      <ScanPrescriptionDialog
-        open={isScanning}
-        onOpenChange={setIsScanning}
+      <AddPrescriptionDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
         onGenerate={handleGenerateDashboard}
       />
     </div>

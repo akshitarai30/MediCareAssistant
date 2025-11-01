@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Wand2 } from 'lucide-react';
 
-interface ScanPrescriptionDialogProps {
+interface AddPrescriptionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onGenerate: (prescriptionText: string) => void;
@@ -35,7 +35,7 @@ Patient: John Doe
    - Instructions: Take one tablet twice daily with meals.
    - Timings: 08:00, 20:00`;
 
-export function ScanPrescriptionDialog({ open, onOpenChange, onGenerate }: ScanPrescriptionDialogProps) {
+export function AddPrescriptionDialog({ open, onOpenChange, onGenerate }: AddPrescriptionDialogProps) {
   const [prescriptionText, setPrescriptionText] = React.useState('');
 
   const handleGenerateClick = () => {
@@ -47,9 +47,9 @@ export function ScanPrescriptionDialog({ open, onOpenChange, onGenerate }: ScanP
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] md:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Scan Prescription</DialogTitle>
+          <DialogTitle>Add New Prescription</DialogTitle>
           <DialogDescription>
-            Paste the text from the scanned prescription below. Our AI will automatically create your medication schedule.
+            Enter the prescription details below. Our AI will automatically create your medication schedule.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">

@@ -1,14 +1,14 @@
 'use client';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Camera } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import placeholderImage from '@/lib/placeholder-images.json';
 
 interface EmptyStateProps {
-  onScan: () => void;
+  onAdd: () => void;
 }
 
-export function EmptyState({ onScan }: EmptyStateProps) {
+export function EmptyState({ onAdd }: EmptyStateProps) {
   const image = placeholderImage.placeholderImages[0];
 
   return (
@@ -23,11 +23,11 @@ export function EmptyState({ onScan }: EmptyStateProps) {
       />
       <h2 className="text-2xl font-semibold text-foreground">Welcome to MediScan Assist</h2>
       <p className="mt-2 text-muted-foreground max-w-md mx-auto">
-        Your medication dashboard is empty. Get started by scanning your first prescription.
+        Your medication dashboard is empty. Get started by adding your first prescription.
       </p>
-      <Button onClick={onScan} className="mt-6" size="lg">
-        <Camera className="mr-2 h-5 w-5" />
-        Scan Prescription
+      <Button onClick={onAdd} className="mt-6" size="lg">
+        <PlusCircle className="mr-2 h-5 w-5" />
+        Add Prescription
       </Button>
     </div>
   );
