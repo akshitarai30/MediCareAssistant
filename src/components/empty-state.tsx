@@ -23,11 +23,11 @@ export function EmptyState({ onAdd }: EmptyStateProps) {
       />
       <h2 className="text-2xl font-semibold text-foreground">Welcome to MediScan Assist</h2>
       <p className="mt-2 text-muted-foreground max-w-md mx-auto">
-        Your medication dashboard is empty. Get started by adding your first prescription.
+        Your medication dashboard is empty. Get started by adding your first medication.
       </p>
       <Button onClick={onAdd} className="mt-6" size="lg">
         <PlusCircle className="mr-2 h-5 w-5" />
-        Add Prescription
+        Add Medication
       </Button>
     </div>
   );

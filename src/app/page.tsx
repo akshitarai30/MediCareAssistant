@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Camera, Bell, Check, Clock, Pause, X, PlusCircle } from 'lucide-react';
+import { Bell, Check, Clock, PlusCircle } from 'lucide-react';
 import { add, differenceInSeconds, parse } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
@@ -9,8 +9,7 @@ import { AppHeader } from '@/components/app-header';
 import { AddPrescriptionDialog } from '@/components/add-prescription-dialog';
 import { EmptyState } from '@/components/empty-state';
 import { MedicationCard } from '@/components/medication-card';
-import type { Medication, MedicationStatus } from '@/lib/types';
-import { generateAiDashboard } from '@/ai/flows/generate-ai-dashboard';
+import type { Medication, MedicationEntry, MedicationStatus } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -23,67 +22,62 @@ export default function Home() {
 
   const handleOpenAddDialog = () => setIsAddDialogOpen(true);
 
-  const handleGenerateDashboard = async (prescriptionText: string) => {
-    if (!prescriptionText.trim()) {
-      toast({
-        title: 'Error',
-        description: 'Prescription text cannot be empty.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+  const handleAddMedication = async (medicationData: MedicationEntry) => {
     setIsLoading(true);
-    setMedications([]);
-    spokenAlerts.current.clear();
     setIsAddDialogOpen(false);
+    
+    // Simulate a short delay for a better user experience
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     try {
-      const result = await generateAiDashboard({ prescriptionText });
-      const parsedData = JSON.parse(result.dashboardData);
-
       const now = new Date();
-      const newMedications: Medication[] = parsedData.medications.map((med: any, index: number) => {
-        let nextDoseTime: string | null = null;
-        let nextDoseDate: Date | null = null;
+      const timings = medicationData.timings.split(',').map(t => t.trim()).filter(Boolean);
 
-        if (med.timings && med.timings.length > 0) {
-          const sortedTimings = med.timings
-            .map((t: string) => parse(t, 'HH:mm', now))
-            .sort((a: Date, b: Date) => a.getTime() - b.getTime());
+      let nextDoseTime: string | null = null;
+      let nextDoseDate: Date | null = null;
 
-          let nextDose = sortedTimings.find((t: Date) => differenceInSeconds(t, now) > 0);
+      if (timings && timings.length > 0) {
+        const sortedTimings = timings
+          .map((t: string) => parse(t, 'HH:mm', now))
+          .sort((a: Date, b: Date) => a.getTime() - b.getTime());
 
-          if (!nextDose) {
-            nextDose = add(sortedTimings[0], { days: 1 });
-          }
-          nextDoseTime = `${String(nextDose.getHours()).padStart(2, '0')}:${String(nextDose.getMinutes()).padStart(2, '0')}`;
-          nextDoseDate = nextDose;
+        let nextDose = sortedTimings.find((t: Date) => differenceInSeconds(t, now) > 0);
+
+        if (!nextDose) {
+          nextDose = add(sortedTimings[0], { days: 1 });
         }
+        nextDoseTime = `${String(nextDose.getHours()).padStart(2, '0')}:${String(nextDose.getMinutes()).padStart(2, '0')}`;
+        nextDoseDate = nextDose;
+      }
 
-        return {
-          id: `${new Date().getTime()}-${index}`,
-          name: med.name,
-          dosage: med.dosage,
-          timings: med.timings,
-          status: 'Upcoming',
-          nextDoseTime,
-          nextDoseDate,
-        };
+      const newMedication: Medication = {
+        id: `${new Date().getTime()}`,
+        name: medicationData.name,
+        dosage: medicationData.dosage,
+        timings: timings,
+        status: 'Upcoming',
+        nextDoseTime,
+        nextDoseDate,
+      };
+
+      setMedications(prevMeds => [...prevMeds, newMedication]);
+      toast({
+        title: 'Medication Added',
+        description: `${newMedication.name} has been added to your dashboard.`,
       });
 
-      setMedications(newMedications);
     } catch (error) {
-      console.error('Failed to generate dashboard:', error);
+      console.error('Failed to add medication:', error);
       toast({
-        title: 'Generation Failed',
-        description: 'Could not generate dashboard from the provided text. Please try again.',
+        title: 'Failed to Add',
+        description: 'Could not add the medication. Please check the timings format (HH:mm) and try again.',
         variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
   };
+
 
   const handleStatusChange = (id: string, status: MedicationStatus) => {
     setMedications(meds =>
@@ -157,11 +151,11 @@ export default function Home() {
             </div>
             <Button size="lg" onClick={handleOpenAddDialog}>
               <PlusCircle className="mr-2 h-5 w-5" />
-              Add New Prescription
+              Add Medication
             </Button>
           </div>
 
-          {isLoading && (
+          {isLoading && medications.length === 0 && (
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[...Array(3)].map((_, i) => (
                     <div key={i} className="flex flex-col space-y-3 p-6 rounded-xl border bg-card">
@@ -196,7 +190,7 @@ export default function Home() {
       <AddPrescriptionDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
-        onGenerate={handleGenerateDashboard}
+        onAddMedication={handleAddMedication}
       />
     </div>
   );

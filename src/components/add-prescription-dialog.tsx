@@ -10,62 +10,113 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Wand2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { PlusCircle } from 'lucide-react';
+import { useForm, SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import type { MedicationEntry } from '@/lib/types';
 
 interface AddPrescriptionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onGenerate: (prescriptionText: string) => void;
+  onAddMedication: (data: MedicationEntry) => void;
 }
 
-const placeholderText = `Example:
-Dr. Emily Carter
-Date: 2024-07-29
+const FormSchema = z.object({
+  name: z.string().min(1, 'Medication name is required.'),
+  dosage: z.string().min(1, 'Dosage is required.'),
+  timings: z
+    .string()
+    .min(1, 'At least one timing is required.')
+    .regex(/^(\d{2}:\d{2})(,\s*\d{2}:\d{2})*$/, 'Use HH:mm format, comma separated.'),
+});
 
-Patient: John Doe
+export function AddPrescriptionDialog({ open, onOpenChange, onAddMedication }: AddPrescriptionDialogProps) {
+  const form = useForm<MedicationEntry>({
+    resolver: zodResolver(FormSchema),
+    defaultValues: {
+      name: '',
+      dosage: '',
+      timings: '',
+    },
+  });
 
-1. Lisinopril
-   - Dosage: 10mg
-   - Instructions: Take one tablet daily in the morning.
-   - Timings: 08:00
-
-2. Metformin
-   - Dosage: 500mg
-   - Instructions: Take one tablet twice daily with meals.
-   - Timings: 08:00, 20:00`;
-
-export function AddPrescriptionDialog({ open, onOpenChange, onGenerate }: AddPrescriptionDialogProps) {
-  const [prescriptionText, setPrescriptionText] = React.useState('');
-
-  const handleGenerateClick = () => {
-    onGenerate(prescriptionText);
-    setPrescriptionText(''); // Clear text area after generation
+  const onSubmit: SubmitHandler<MedicationEntry> = (data) => {
+    onAddMedication(data);
+    form.reset();
   };
+  
+  React.useEffect(() => {
+    if (!open) {
+      form.reset();
+    }
+  }, [open, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] md:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add New Prescription</DialogTitle>
+          <DialogTitle>Add New Medication</DialogTitle>
           <DialogDescription>
-            Enter the prescription details below. Our AI will automatically create your medication schedule.
+            Enter the details for your medication below to add it to your dashboard.
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4">
-          <Textarea
-            placeholder={placeholderText}
-            className="min-h-[200px] text-sm"
-            value={prescriptionText}
-            onChange={(e) => setPrescriptionText(e.target.value)}
-          />
-        </div>
-        <DialogFooter>
-          <Button onClick={handleGenerateClick}>
-            <Wand2 className="mr-2 h-4 w-4" />
-            Generate Dashboard
-          </Button>
-        </DialogFooter>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Medication Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Lisinopril" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="dosage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Dosage</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., 10mg" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="timings"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Timings</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., 08:00, 20:00" {...field} />
+                  </FormControl>
+                   <p className="text-xs text-muted-foreground">
+                    Enter times in HH:mm format, separated by commas.
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <DialogFooter>
+                <Button type="submit">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add Medication
+                </Button>
+              </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

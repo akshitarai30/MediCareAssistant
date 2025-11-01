@@ -9,3 +9,9 @@ export interface Medication {
   nextDoseTime: string | null;
   nextDoseDate: Date | null;
 }
+
+export interface MedicationEntry {
+  name: string;
+  dosage: string;
+  timings: string;
+}
