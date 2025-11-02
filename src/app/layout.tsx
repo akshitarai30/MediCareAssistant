@@ -5,7 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'Medicare Assist',
+  title: 'MediCare Assist',
   description: 'Intelligent medication management.',
 };
 

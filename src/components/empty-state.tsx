@@ -21,7 +21,7 @@ export function EmptyState({ onAdd }: EmptyStateProps) {
         className="rounded-lg object-cover mb-6"
         data-ai-hint={image.imageHint}
       />
-      <h2 className="text-2xl font-semibold text-foreground">Welcome to Medicare Assist</h2>
+      <h2 className="text-2xl font-semibold text-foreground">Welcome to MediCare Assist</h2>
       <p className="mt-2 text-muted-foreground max-w-md mx-auto">
         Your medication dashboard is empty. Get started by adding your first medication.
       </p>
