@@ -2,34 +2,77 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { collection } from 'firebase/firestore';
+import { collection, writeBatch, getDocs } from 'firebase/firestore';
 import { format } from 'date-fns';
-import { Calendar, CheckCircle2, PauseCircle, XCircle, Pill } from 'lucide-react';
+import { Calendar, CheckCircle2, PauseCircle, XCircle, Pill, Trash2 } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { MedicationLog } from '@/lib/types';
 import { AppHeader } from '@/components/app-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 export default function HistoryPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isDeleting, setIsDeleting] = React.useState(false);
 
   const logsQuery = useMemoFirebase(
     () => (user ? collection(firestore, 'users', user.uid, 'medicationlogs') : null),
     [firestore, user]
   );
   
-  const { data: medicationLogs, isLoading: isLogsLoading } = useCollection<MedicationLog>(logsQuery);
+  const { data: medicationLogs, isLoading: isLogsLoading, error } = useCollection<MedicationLog>(logsQuery);
 
   React.useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
+  
+  const handleClearHistory = async () => {
+    if (!user || !firestore || !logsQuery) return;
+
+    setIsDeleting(true);
+    try {
+      const batch = writeBatch(firestore);
+      const querySnapshot = await getDocs(logsQuery);
+      querySnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+      toast({
+        title: 'History Cleared',
+        description: 'All medication logs have been deleted.',
+      });
+    } catch (e) {
+      console.error("Error clearing history: ", e);
+      toast({
+        title: 'Error',
+        description: 'Could not clear medication history. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -60,6 +103,7 @@ export default function HistoryPage() {
   const groupedLogs = React.useMemo(() => {
     if (!medicationLogs) return {};
     return medicationLogs.reduce((acc, log) => {
+      if (!log.timestamp) return acc;
       const date = format(new Date((log.timestamp as any).seconds * 1000), 'yyyy-MM-dd');
       if (!acc[date]) {
         acc[date] = [];
@@ -85,9 +129,35 @@ export default function HistoryPage() {
       <AppHeader />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="max-w-4xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground tracking-tight">Medication History</h1>
-            <p className="text-muted-foreground mt-1">A complete log of your medication consumption.</p>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground tracking-tight">Medication History</h1>
+              <p className="text-muted-foreground mt-1">A complete log of your medication consumption.</p>
+            </div>
+            {medicationLogs && medicationLogs.length > 0 && (
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="destructive" disabled={isDeleting}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            {isDeleting ? 'Clearing...' : 'Clear History'}
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete all your medication history logs.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleClearHistory} className="bg-destructive hover:bg-destructive/90">
+                            Yes, delete all history
+                        </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            )}
           </div>
 
           {isLogsLoading && (
@@ -147,7 +217,7 @@ export default function HistoryPage() {
                         <div className="flex-1">
                           <p className="font-semibold">{log.medicationName}</p>
                           <p className="text-sm text-muted-foreground">
-                            {format(new Date((log.timestamp as any).seconds * 1000), 'p')}
+                            {log.timestamp ? format(new Date((log.timestamp as any).seconds * 1000), 'p') : 'No time'}
                           </p>
                         </div>
                         <Badge variant={getStatusBadgeVariant(log.status)}>{log.status}</Badge>
