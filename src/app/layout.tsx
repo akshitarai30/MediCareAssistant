@@ -3,7 +3,6 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase';
-import { Chatbot } from '@/components/chatbot';
 
 export const metadata: Metadata = {
   title: 'MediScan Assist',
@@ -28,7 +27,6 @@ export default function RootLayout({
       <body className={cn('font-body antialiased min-h-screen bg-background')}>
         <FirebaseClientProvider>
           {children}
-          <Chatbot />
         </FirebaseClientProvider>
         <Toaster />
       </body>
