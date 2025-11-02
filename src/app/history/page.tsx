@@ -88,7 +88,7 @@ export default function HistoryPage() {
     }
   };
 
-  const getStatusBadgeVariant = (status: string) => {
+  const getStatusBadgeVariant = (status: string): "taken" | "snoozed" | "missed" | "outline" => {
     switch (status) {
       case 'Taken':
         return 'taken';
