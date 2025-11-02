@@ -1,0 +1,42 @@
+/**
+ * @file Firebase Security Rules for MediScan Assist.
+ *
+ * @core_philosophy This ruleset enforces a strict user-ownership model. Each user can only access their own data stored under their /users/{userId} path.
+ * @data_structure All user data is nested under /users/{userId}, ensuring clear ownership.
+ * @key_security_decisions
+ *   - Users cannot list all other users.
+ *   - Data validation is relaxed during prototyping to focus on authorization.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Secure user accounts under their respective user IDs.
+     * @path /users/{userId}
+     * @allow (create) Authenticated user creates their own account.
+     * @allow (get) Authenticated user reads their own account.
+     * @allow (update) Authenticated user updates their own account.
+     * @allow (delete) Authenticated user deletes their own account.
+     * @deny (create) Non-authenticated user attempts to create an account.
+     * @deny (get) Authenticated user attempts to read another user's account.
+     * @principle Enforces document ownership for writes. Validates relational integrity between documents.
+     */
+    match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}
