@@ -22,7 +22,7 @@ MediCare Assist is an intelligent medication management application designed to 
 - **Backend & Database**: [Firebase](https://firebase.google.com/) (Firestore, Firebase Authentication, Firebase Storage)
 - **Form Management**: [React Hook Form](https://react-hook-form.com/) with [Zod](https://zod.dev/) for validation.
 - **UI Components**: `lucide-react` for icons, `date-fns` for date manipulation.
-- **Deployment**: Ready for [Firebase App Hosting](https://firebase.google.com/docs/app-hosting).
+- **Deployment**: Ready for Vercel [medi-care-assistant.vercel.app]
 
 ## Project Structure
 
