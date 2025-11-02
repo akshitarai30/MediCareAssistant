@@ -1,12 +1,18 @@
 'use client';
 
 import * as React from 'react';
-import { HeartPulse, Siren } from 'lucide-react';
+import { HeartPulse, Siren, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmergencyDialog } from '@/components/emergency-dialog';
+import { useAuth } from '@/firebase';
 
 export function AppHeader() {
   const [isEmergencyDialogOpen, setIsEmergencyDialogOpen] = React.useState(false);
+  const auth = useAuth();
+
+  const handleLogout = () => {
+    auth.signOut();
+  };
 
   return (
     <>
@@ -24,6 +30,10 @@ export function AppHeader() {
             >
               <Siren className="mr-2 h-5 w-5" />
               Emergency
+            </Button>
+            <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="mr-2 h-5 w-5" />
+              Logout
             </Button>
           </div>
         </div>

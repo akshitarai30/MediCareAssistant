@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import { Bell, Check, Clock, PlusCircle } from 'lucide-react';
 import { add, differenceInSeconds, parse } from 'date-fns';
 
@@ -13,13 +14,22 @@ import type { Medication, MedicationEntry, MedicationStatus } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AddMedicationCard } from '@/components/add-medication-card';
+import { useUser } from '@/firebase';
 
 export default function Home() {
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
   const [medications, setMedications] = React.useState<Medication[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const { toast } = useToast();
   const spokenAlerts = React.useRef<Set<string>>(new Set());
+
+  React.useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
 
   const handleOpenAddDialog = () => setIsAddDialogOpen(true);
 
@@ -27,7 +37,6 @@ export default function Home() {
     setIsLoading(true);
     setIsAddDialogOpen(false);
     
-    // Simulate a short delay for a better user experience
     await new Promise(resolve => setTimeout(resolve, 500));
 
     try {
@@ -135,9 +144,17 @@ export default function Home() {
             }
             return m;
         }));
-    }, 1000 * 60 * 5); // Mark as missed after 5 minutes
+    }, 1000 * 60 * 5);
 
   }, [toast]);
+
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Skeleton className="h-12 w-12 rounded-full" />
+      </div>
+    );
+  }
 
 
   return (
@@ -152,7 +169,7 @@ export default function Home() {
             </div>
           </div>
 
-          {isLoading && medications.length === 0 && (
+          {(isLoading || medications.length === 0) && (
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[...Array(3)].map((_, i) => (
                     <div key={i} className="flex flex-col space-y-3 p-6 rounded-xl border bg-card">
