@@ -8,7 +8,7 @@ import { z } from 'zod';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useAuth, useUser, initiateEmailSignIn } from '@/firebase';
@@ -124,18 +124,6 @@ export default function LoginPage() {
             </Link>
           </div>
         </CardContent>
-        <CardFooter>
-          <Card className="w-full bg-muted/50 border-dashed">
-            <CardHeader>
-              <CardTitle className="text-sm text-center">Sample Credentials</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-center">
-              <p>First, <Link href="/register" className="font-medium text-primary hover:underline">register</Link> with:</p>
-              <p className="font-mono text-xs mt-2">Email: user@example.com</p>
-              <p className="font-mono text-xs">Password: password</p>
-            </CardContent>
-          </Card>
-        </CardFooter>
       </Card>
     </div>
   );
