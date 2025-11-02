@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Clock, CheckCircle2, XCircle, Bell, PauseCircle, Trash2 } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Bell, PauseCircle, Trash2, CalendarOff } from 'lucide-react';
 import { useCountdown } from '@/hooks/use-countdown';
 import { Medication, MedicationStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { format } from 'date-fns';
 
 
 interface MedicationCardProps {
@@ -47,14 +48,19 @@ export function MedicationCard({ medication, onStatusChange, onDoseDue, onNotify
     'border-border';
 
   const CountdownDisplay = () => {
-    if (medication.status === 'Taken') {
-        return <div className="text-center text-green-600 font-semibold">Dose complete for today!</div>;
+    if (!medication.nextDoseDate) {
+        return (
+          <div className="text-center text-green-600 font-semibold flex flex-col items-center gap-2">
+            <CheckCircle2 className="h-8 w-8" />
+            <span>Prescription complete!</span>
+          </div>
+        );
+    }
+     if (medication.status === 'Taken') {
+        return <div className="text-center text-green-600 font-semibold">Dose complete! Next dose soon.</div>;
     }
     if (medication.status === 'Missed') {
         return <div className="text-center text-red-600 font-semibold">Dose missed!</div>;
-    }
-    if (!medication.nextDoseDate) {
-        return <div className="text-center text-muted-foreground">No upcoming dose.</div>;
     }
     
     return (
@@ -71,6 +77,12 @@ export function MedicationCard({ medication, onStatusChange, onDoseDue, onNotify
             <div>
                 <CardTitle className="text-xl">{medication.name}</CardTitle>
                 <CardDescription>{medication.dosage}</CardDescription>
+                 {medication.prescriptionEndDate && (
+                    <CardDescription className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                        <CalendarOff className="h-3 w-3" />
+                        Ends on: {format(new Date(medication.prescriptionEndDate as string), 'MMM d, yyyy')}
+                    </CardDescription>
+                )}
             </div>
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
               <AlertDialogTrigger asChild>
@@ -109,12 +121,12 @@ export function MedicationCard({ medication, onStatusChange, onDoseDue, onNotify
         </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
-        {medication.status !== 'Missed' && (
+        {medication.status !== 'Missed' && !!medication.nextDoseDate && (
              <RadioGroup
-                defaultValue={medication.status}
+                value={medication.status}
                 onValueChange={(value) => onStatusChange(medication.id, value as MedicationStatus)}
                 className="grid grid-cols-3 gap-2 w-full"
-                disabled={medication.status === 'Taken'}
+                disabled={medication.status === 'Taken' && !isDue}
               >
                 <Label htmlFor={`taken-${medication.id}`} className={cn("flex flex-col items-center justify-center rounded-md border-2 p-3 font-semibold cursor-pointer hover:bg-accent hover:text-accent-foreground", medication.status === 'Taken' && 'border-green-500 bg-green-500/10 text-green-700')}>
                     <RadioGroupItem value="Taken" id={`taken-${medication.id}`} className="sr-only" />

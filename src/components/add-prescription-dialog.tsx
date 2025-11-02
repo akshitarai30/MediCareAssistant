@@ -33,6 +33,7 @@ const FormSchema = z.object({
     .string()
     .min(1, 'At least one timing is required.')
     .regex(/^(\d{2}:\d{2})(,\s*\d{2}:\d{2})*$/, 'Use HH:mm format, comma separated.'),
+  durationDays: z.coerce.number().min(1, 'Duration must be at least 1 day.'),
 });
 
 export function AddPrescriptionDialog({ open, onOpenChange, onAddMedication }: AddPrescriptionDialogProps) {
@@ -42,6 +43,7 @@ export function AddPrescriptionDialog({ open, onOpenChange, onAddMedication }: A
       name: '',
       dosage: '',
       timings: '',
+      durationDays: 7,
     },
   });
 
@@ -105,6 +107,19 @@ export function AddPrescriptionDialog({ open, onOpenChange, onAddMedication }: A
                    <p className="text-xs text-muted-foreground">
                     Enter times in HH:mm format, separated by commas.
                   </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="durationDays"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Duration (in days)</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="e.g., 7" {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

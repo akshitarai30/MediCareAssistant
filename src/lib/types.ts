@@ -9,12 +9,14 @@ export interface Medication {
   nextDoseTime: string | null;
   nextDoseDate: Date | string | null; // Allow string for Firestore timestamp
   userId: string;
+  prescriptionEndDate?: Date | string | null;
 }
 
 export interface MedicationEntry {
   name: string;
   dosage: string;
   timings: string;
+  durationDays: number;
 }
 
 export interface MedicationLog {

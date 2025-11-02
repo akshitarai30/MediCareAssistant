@@ -66,6 +66,8 @@ export default function Home() {
         nextDoseTime = `${String(nextDose.getHours()).padStart(2, '0')}:${String(nextDose.getMinutes()).padStart(2, '0')}`;
         nextDoseDate = nextDose;
       }
+      
+      const prescriptionEndDate = add(now, { days: medicationData.durationDays });
 
       const newMedication = {
         name: medicationData.name,
@@ -74,6 +76,7 @@ export default function Home() {
         status: 'Upcoming' as MedicationStatus,
         nextDoseTime,
         nextDoseDate: nextDoseDate ? Timestamp.fromDate(nextDoseDate) : null,
+        prescriptionEndDate: Timestamp.fromDate(prescriptionEndDate),
         userId: user.uid,
       };
 
@@ -111,6 +114,35 @@ export default function Home() {
         const newDate = add(new Date(), { minutes: 10 });
         updatedMedication.nextDoseDate = Timestamp.fromDate(newDate);
         description = `${med.name} has been snoozed for 10 minutes.`;
+    }
+
+    if (status === 'Taken') {
+        const now = new Date();
+        const timings = med.timings.map(t => t.trim()).filter(Boolean);
+        
+        const sortedTimings = timings
+          .map((t: string) => parse(t, 'HH:mm', now))
+          .sort((a: Date, b: Date) => a.getTime() - b.getTime());
+
+        let nextDose = sortedTimings.find((t: Date) => differenceInSeconds(t, now) > 0);
+        if (!nextDose) {
+          nextDose = add(sortedTimings[0], { days: 1 });
+        }
+        
+        const prescriptionEndDate = med.prescriptionEndDate && typeof med.prescriptionEndDate !== 'string' && 'seconds' in med.prescriptionEndDate 
+            ? toDate((med.prescriptionEndDate as any).seconds * 1000) 
+            : med.prescriptionEndDate;
+
+        if (prescriptionEndDate && nextDose.getTime() > (prescriptionEndDate as Date).getTime()) {
+            updatedMedication.nextDoseDate = null;
+            updatedMedication.nextDoseTime = null;
+            updatedMedication.status = 'Taken'; // Or maybe a new 'Completed' status
+            description = `You have completed your prescription for ${med.name}.`;
+        } else {
+            updatedMedication.nextDoseDate = Timestamp.fromDate(nextDose);
+            updatedMedication.nextDoseTime = `${String(nextDose.getHours()).padStart(2, '0')}:${String(nextDose.getMinutes()).padStart(2, '0')}`;
+            updatedMedication.status = 'Upcoming'; // Reset to upcoming for the next dose
+        }
     }
 
     updateDocumentNonBlocking(medicationDocRef, updatedMedication);
@@ -192,7 +224,10 @@ export default function Home() {
     ...med,
     nextDoseDate: med.nextDoseDate && typeof med.nextDoseDate !== 'string' && 'seconds' in med.nextDoseDate 
       ? toDate((med.nextDoseDate as any).seconds * 1000) 
-      : med.nextDoseDate
+      : med.nextDoseDate,
+    prescriptionEndDate: med.prescriptionEndDate && typeof med.prescriptionEndDate !== 'string' && 'seconds' in med.prescriptionEndDate
+      ? toDate((med.prescriptionEndDate as any).seconds * 1000)
+      : med.prescriptionEndDate
   }));
 
   return (
