@@ -2,13 +2,13 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, addDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { format } from 'date-fns';
 import { FileText, UploadCloud, Trash2, Download } from 'lucide-react';
 
 import { useUser, useFirestore, useStorage, useCollection, useMemoFirebase } from '@/firebase';
-import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { MedicalReport } from '@/lib/types';
 
 import { AppHeader } from '@/components/app-header';
@@ -82,7 +82,7 @@ export default function ReportsPage() {
         downloadUrl: downloadUrl,
       };
 
-      addDocumentNonBlocking(reportsCollection, newReport);
+      await addDoc(reportsCollection, newReport);
       
       toast({
         title: 'Upload Successful',
@@ -271,3 +271,5 @@ export default function ReportsPage() {
     </>
   );
 }
+
+    
