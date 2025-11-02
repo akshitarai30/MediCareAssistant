@@ -22,7 +22,7 @@ export function AppHeader() {
           <div className="mr-4 flex items-center">
              <Link href="/" className="flex items-center gap-2">
                 <HeartPulse className="h-8 w-8 text-primary" />
-                <span className="ml-2 text-xl font-bold">MediScan Assist</span>
+                <span className="ml-2 text-xl font-bold">Medicare Assist</span>
             </Link>
           </div>
           <div className="flex flex-1 items-center justify-end space-x-4">

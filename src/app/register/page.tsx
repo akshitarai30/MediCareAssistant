@@ -105,7 +105,7 @@ export default function RegisterPage() {
             <HeartPulse className="h-10 w-10 text-primary" />
           </div>
           <CardTitle className="text-2xl font-bold">Create an Account</CardTitle>
-          <CardDescription>Join MediScan Assist to manage your health</CardDescription>
+          <CardDescription>Join Medicare Assist to manage your health</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
