@@ -2,26 +2,34 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, Check, Clock, PlusCircle } from 'lucide-react';
-import { add, differenceInSeconds, parse } from 'date-fns';
+import { Bell, Check, Clock } from 'lucide-react';
+import { add, differenceInSeconds, parse, toDate } from 'date-fns';
+import { collection, doc, serverTimestamp, Timestamp } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { AppHeader } from '@/components/app-header';
 import { AddPrescriptionDialog } from '@/components/add-prescription-dialog';
 import { EmptyState } from '@/components/empty-state';
 import { MedicationCard } from '@/components/medication-card';
-import type { Medication, MedicationEntry, MedicationStatus } from '@/lib/types';
+import type { Medication, MedicationEntry, MedicationStatus, MedicationLog } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AddMedicationCard } from '@/components/add-medication-card';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
-  const [medications, setMedications] = React.useState<Medication[]>([]);
+  const firestore = useFirestore();
+  
+  const medicationsQuery = useMemoFirebase(() => 
+    user ? collection(firestore, 'users', user.uid, 'medications') : null
+  , [firestore, user]);
+
+  const { data: medications, isLoading: isMedicationsLoading } = useCollection<Medication>(medicationsQuery);
+
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
-  const [isLoading, setIsLoading] = React.useState(false);
   const { toast } = useToast();
   const spokenAlerts = React.useRef<Set<string>>(new Set());
 
@@ -34,11 +42,10 @@ export default function Home() {
   const handleOpenAddDialog = () => setIsAddDialogOpen(true);
 
   const handleAddMedication = async (medicationData: MedicationEntry) => {
-    setIsLoading(true);
+    if (!user) return;
+
     setIsAddDialogOpen(false);
     
-    await new Promise(resolve => setTimeout(resolve, 500));
-
     try {
       const now = new Date();
       const timings = medicationData.timings.split(',').map(t => t.trim()).filter(Boolean);
@@ -60,17 +67,19 @@ export default function Home() {
         nextDoseDate = nextDose;
       }
 
-      const newMedication: Medication = {
-        id: `${new Date().getTime()}`,
+      const newMedication = {
         name: medicationData.name,
         dosage: medicationData.dosage,
         timings: timings,
-        status: 'Upcoming',
+        status: 'Upcoming' as MedicationStatus,
         nextDoseTime,
-        nextDoseDate,
+        nextDoseDate: nextDoseDate ? Timestamp.fromDate(nextDoseDate) : null,
+        userId: user.uid,
       };
 
-      setMedications(prevMeds => [...prevMeds, newMedication]);
+      const medicationsCollection = collection(firestore, 'users', user.uid, 'medications');
+      addDocumentNonBlocking(medicationsCollection, newMedication);
+
       toast({
         title: 'Medication Added',
         description: `${newMedication.name} has been added to your dashboard.`,
@@ -83,32 +92,43 @@ export default function Home() {
         description: 'Could not add the medication. Please check the timings format (HH:mm) and try again.',
         variant: 'destructive',
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
-
   const handleStatusChange = (id: string, status: MedicationStatus) => {
-    setMedications(meds =>
-      meds.map(med => {
-        if (med.id === id) {
-          let description = `You've marked ${med.name} as ${status.toLowerCase()}.`;
-          if (status === 'Snoozed' && med.nextDoseDate) {
-            const newDate = add(new Date(), { minutes: 10 });
-            description = `${med.name} has been snoozed for 10 minutes.`;
-            return { ...med, status, nextDoseDate: newDate };
-          }
-          toast({
-            title: `Medication Updated`,
-            description,
-            icon: <Check className="h-5 w-5 text-green-500" />,
-          });
-          return { ...med, status };
-        }
-        return med;
-      })
-    );
+    if(!user) return;
+    
+    const med = medications?.find(m => m.id === id);
+    if (!med) return;
+
+    const medicationDocRef = doc(firestore, 'users', user.uid, 'medications', id);
+    const logsCollectionRef = collection(firestore, 'users', user.uid, 'medicationlogs');
+    
+    let description = `You've marked ${med.name} as ${status.toLowerCase()}.`;
+    let updatedMedication: Partial<Medication> = { status };
+
+    if (status === 'Snoozed') {
+        const newDate = add(new Date(), { minutes: 10 });
+        updatedMedication.nextDoseDate = Timestamp.fromDate(newDate);
+        description = `${med.name} has been snoozed for 10 minutes.`;
+    }
+
+    updateDocumentNonBlocking(medicationDocRef, updatedMedication);
+    
+    const logEntry: Omit<MedicationLog, 'id'> = {
+        userId: user.uid,
+        medicationId: id,
+        medicationName: med.name,
+        status: status,
+        timestamp: serverTimestamp() as unknown as string,
+    };
+    addDocumentNonBlocking(logsCollectionRef, logEntry);
+
+    toast({
+        title: `Medication Updated`,
+        description,
+        icon: <Check className="h-5 w-5 text-green-500" />,
+    });
   };
   
   const handleNotifyCaregiver = (medicationName: string) => {
@@ -138,15 +158,12 @@ export default function Home() {
     spokenAlerts.current.add(alertId);
 
     setTimeout(() => {
-        setMedications(meds => meds.map(m => {
-            if (m.id === med.id && m.status === 'Upcoming') {
-                return {...m, status: 'Missed'};
-            }
-            return m;
-        }));
+        if (!user) return;
+        const medDocRef = doc(firestore, 'users', user.uid, 'medications', med.id);
+        updateDocumentNonBlocking(medDocRef, { status: 'Missed' });
     }, 1000 * 60 * 5);
 
-  }, [toast]);
+  }, [toast, user, firestore]);
 
   if (isUserLoading || !user) {
     return (
@@ -156,6 +173,12 @@ export default function Home() {
     );
   }
 
+  const processedMedications = (medications || []).map(med => ({
+    ...med,
+    nextDoseDate: med.nextDoseDate && typeof med.nextDoseDate !== 'string' && 'seconds' in med.nextDoseDate 
+      ? toDate((med.nextDoseDate as any).seconds * 1000) 
+      : med.nextDoseDate
+  }));
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -169,9 +192,9 @@ export default function Home() {
             </div>
           </div>
 
-          {(isLoading || medications.length === 0) && (
+          {(isMedicationsLoading || processedMedications.length === 0) && (
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(3)].map((_, i) => (
+                {isMedicationsLoading && [...Array(3)].map((_, i) => (
                     <div key={i} className="flex flex-col space-y-3 p-6 rounded-xl border bg-card">
                         <Skeleton className="h-6 w-3/5 rounded-md" />
                         <Skeleton className="h-4 w-4/5 rounded-md" />
@@ -184,16 +207,16 @@ export default function Home() {
              </div>
           )}
 
-          {!isLoading && medications.length === 0 && <EmptyState onAdd={handleOpenAddDialog} />}
+          {!isMedicationsLoading && processedMedications.length === 0 && <EmptyState onAdd={handleOpenAddDialog} />}
           
-          {!isLoading && medications.length > 0 && (
+          {!isMedicationsLoading && processedMedications.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {medications.map(med => (
+              {processedMedications.map(med => (
                 <MedicationCard 
                     key={med.id} 
-                    medication={med} 
+                    medication={med as Medication}
                     onStatusChange={handleStatusChange} 
-                    onDoseDue={() => handleDoseDue(med)}
+                    onDoseDue={() => handleDoseDue(med as Medication)}
                     onNotifyCaregiver={() => handleNotifyCaregiver(med.name)}
                 />
               ))}

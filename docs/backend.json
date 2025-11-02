@@ -32,10 +32,80 @@
       "required": [
         "id",
         "username",
-        "email",
-        "phoneNumber",
-        "registrationDate"
+        "email"
       ]
+    },
+    "Medication": {
+      "title": "Medication",
+      "type": "object",
+      "description": "Represents a user's medication, including dosage and schedule.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the medication."
+        },
+        "dosage": {
+          "type": "string",
+          "description": "The prescribed dosage (e.g., '10mg', '1 tablet')."
+        },
+        "timings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "Scheduled times for doses in HH:mm format."
+          }
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the next dose.",
+          "enum": ["Upcoming", "Taken", "Snoozed", "Missed"]
+        },
+        "nextDoseTime": {
+          "type": "string",
+          "description": "The next scheduled dose time in HH:mm format.",
+          "format": "time"
+        },
+        "nextDoseDate": {
+            "type": "string",
+            "description": "The exact date and time for the next dose.",
+            "format": "date-time"
+        },
+        "userId": {
+            "type": "string",
+            "description": "The ID of the user this medication belongs to."
+        }
+      },
+      "required": ["name", "dosage", "timings", "userId"]
+    },
+    "MedicationLog": {
+        "title": "MedicationLog",
+        "type": "object",
+        "description": "A log entry for a medication event (taken, snoozed, missed).",
+        "properties": {
+            "userId": {
+                "type": "string",
+                "description": "The ID of the user."
+            },
+            "medicationId": {
+                "type": "string",
+                "description": "The ID of the medication."
+            },
+            "medicationName": {
+                "type": "string",
+                "description": "The name of the medication."
+            },
+            "status": {
+                "type": "string",
+                "description": "The status of the medication event.",
+                "enum": ["Taken", "Snoozed", "Missed"]
+            },
+            "timestamp": {
+                "type": "string",
+                "description": "When the event occurred.",
+                "format": "date-time"
+            }
+        },
+        "required": ["userId", "medicationId", "medicationName", "status", "timestamp"]
     }
   },
   "auth": {
@@ -58,6 +128,46 @@
             {
               "name": "userId",
               "description": "The unique ID of the user, obtained from Firebase Authentication."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/medications/{medicationId}",
+        "definition": {
+          "entityName": "Medication",
+          "schema": {
+            "$ref": "#/backend/entities/Medication"
+          },
+          "description": "Stores individual medications for a user.",
+          "params": [
+             {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            },
+            {
+              "name": "medicationId",
+              "description": "The unique ID of the medication."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/medicationlogs/{logId}",
+        "definition": {
+            "entityName": "MedicationLog",
+            "schema": {
+                "$ref": "#/backend/entities/MedicationLog"
+            },
+            "description": "Stores logs of medication consumption for a user.",
+             "params": [
+             {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            },
+            {
+              "name": "logId",
+              "description": "The unique ID of the log entry."
             }
           ]
         }

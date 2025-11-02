@@ -11,32 +11,20 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Secure user accounts under their respective user IDs.
-     * @path /users/{userId}
-     * @allow (create) Authenticated user creates their own account.
-     * @allow (get) Authenticated user reads their own account.
-     * @allow (update) Authenticated user updates their own account.
-     * @allow (delete) Authenticated user deletes their own account.
-     * @deny (create) Non-authenticated user attempts to create an account.
-     * @deny (get) Authenticated user attempts to read another user's account.
-     * @principle Enforces document ownership for writes. Validates relational integrity between documents.
-     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
+      allow read, write: if isOwner(userId);
+
+      match /medications/{medicationId} {
+        allow read, write: if isOwner(userId);
       }
 
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+      match /medicationlogs/{logId} {
+        allow read, write: if isOwner(userId);
       }
-
-      allow get: if isOwner(userId);
-      allow list: if false;
-
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
     }
   }
 }
