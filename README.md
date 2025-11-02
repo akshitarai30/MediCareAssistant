@@ -63,9 +63,3 @@ Follow these instructions to get a copy of the project up and running on your lo
 
 - [Node.js](https://nodejs.org/) (v18 or later recommended)
 - [npm](https://www.npmjs.com/)
-## Available Scripts
-
-- `npm run dev`: Runs the app in development mode.
-- `npm run build`: Builds the app for production.
-- `npm run start`: Starts a production server.
-- `npm run lint`: Runs the linter to check for code quality issues.
