@@ -45,6 +45,7 @@ export default function ReportsPage() {
   const { toast } = useToast();
   const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
+  const [reportToDelete, setReportToDelete] = React.useState<MedicalReport | null>(null);
 
   const reportsQuery = useMemoFirebase(
     () => (user ? collection(firestore, 'users', user.uid, 'reports') : null),
@@ -67,7 +68,8 @@ export default function ReportsPage() {
       const storagePath = `users/${user.uid}/reports/${Date.now()}_${file.name}`;
       const storageRef = ref(storage, storagePath);
       
-      await uploadBytes(storageRef, file);
+      const uploadResult = await uploadBytes(storageRef, file);
+      const downloadUrl = await getDownloadURL(uploadResult.ref);
       
       const reportsCollection = collection(firestore, 'users', user.uid, 'reports');
       const newReport: Omit<MedicalReport, 'id'> = {
@@ -77,6 +79,7 @@ export default function ReportsPage() {
         fileSize: file.size,
         uploadDate: serverTimestamp() as unknown as string,
         storagePath: storagePath,
+        downloadUrl: downloadUrl,
       };
 
       addDocumentNonBlocking(reportsCollection, newReport);
@@ -98,17 +101,19 @@ export default function ReportsPage() {
     }
   };
 
-  const handleDeleteReport = async (report: MedicalReport) => {
-     if (!user || !report.id) return;
-     const reportDocRef = doc(firestore, 'users', user.uid, 'reports', report.id);
-     const storageRef = ref(storage, report.storagePath);
+  const handleDeleteReport = async () => {
+     if (!user || !reportToDelete || !reportToDelete.id) return;
+     
+     const reportDocRef = doc(firestore, 'users', user.uid, 'reports', reportToDelete.id);
+     const storageRef = ref(storage, reportToDelete.storagePath);
 
      try {
-       deleteDocumentNonBlocking(reportDocRef);
        await deleteObject(storageRef);
+       deleteDocumentNonBlocking(reportDocRef);
+
        toast({
          title: 'Report Deleted',
-         description: `${report.fileName} has been deleted.`,
+         description: `${reportToDelete.fileName} has been deleted.`,
        });
      } catch (error) {
        console.error("Error deleting report:", error);
@@ -117,14 +122,17 @@ export default function ReportsPage() {
          description: 'Could not delete the report. Please try again.',
          variant: 'destructive',
        });
+     } finally {
+        setReportToDelete(null);
      }
   };
 
   const handleDownloadReport = async (report: MedicalReport) => {
     try {
-        const url = await getDownloadURL(ref(storage, report.storagePath));
+        const url = report.downloadUrl || await getDownloadURL(ref(storage, report.storagePath));
         const a = document.createElement('a');
         a.href = url;
+        a.target = '_blank';
         a.download = report.fileName;
         document.body.appendChild(a);
         a.click();
@@ -192,7 +200,10 @@ export default function ReportsPage() {
                           <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
                           <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-2/3" /></TableCell>
                           <TableCell className="hidden md:table-cell text-right"><Skeleton className="h-5 w-1/2" /></TableCell>
-                          <TableCell className="text-right"><Skeleton className="h-8 w-16" /></TableCell>
+                          <TableCell className="text-right space-x-2">
+                            <Skeleton className="h-8 w-8 inline-block" />
+                            <Skeleton className="h-8 w-8 inline-block" />
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -204,34 +215,18 @@ export default function ReportsPage() {
                             {report.fileName}
                           </TableCell>
                           <TableCell className="hidden sm:table-cell">
-                            {report.uploadDate ? format(new Date((report.uploadDate as any).seconds * 1000), 'MMM d, yyyy') : 'N/A'}
+                            {report.uploadDate && 'seconds' in (report.uploadDate as object) ? format(new Date((report.uploadDate as any).seconds * 1000), 'MMM d, yyyy') : 'N/A'}
                           </TableCell>
                           <TableCell className="hidden md:table-cell text-right">{formatBytes(report.fileSize)}</TableCell>
                           <TableCell className="text-right">
                              <Button variant="ghost" size="icon" onClick={() => handleDownloadReport(report)} className="mr-2">
                                 <Download className="h-4 w-4" />
                             </Button>
-                             <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This will permanently delete the report: {report.fileName}.
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteReport(report)} className="bg-destructive hover:bg-destructive/90">
-                                        Delete
-                                    </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                             <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setReportToDelete(report)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </AlertDialogTrigger>
                           </TableCell>
                         </TableRow>
                       ))
@@ -257,6 +252,22 @@ export default function ReportsPage() {
         onUpload={handleUploadReport}
         isUploading={isUploading}
       />
+      <AlertDialog open={!!reportToDelete} onOpenChange={(open) => !open && setReportToDelete(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+                This will permanently delete the report: {reportToDelete?.fileName}.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setReportToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteReport} className="bg-destructive hover:bg-destructive/90">
+                Delete
+            </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

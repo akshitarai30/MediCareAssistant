@@ -36,4 +36,5 @@ export interface MedicalReport {
   fileSize: number;
   uploadDate: Date | string;
   storagePath: string;
+  downloadUrl?: string;
 }
