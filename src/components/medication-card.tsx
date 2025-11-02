@@ -128,15 +128,15 @@ export function MedicationCard({ medication, onStatusChange, onDoseDue, onNotify
                 className="grid grid-cols-3 gap-2 w-full"
                 disabled={medication.status === 'Taken' && !isDue}
               >
-                <Label htmlFor={`taken-${medication.id}`} className={cn("flex flex-col items-center justify-center rounded-md border-2 p-3 font-semibold cursor-pointer hover:bg-status-taken-bg/80", medication.status === 'Taken' ? 'border-status-taken-fg bg-status-taken-bg text-status-taken-fg' : 'border-input', medication.status === 'Taken' && !isDue && 'cursor-not-allowed opacity-50')}>
+                <Label htmlFor={`taken-${medication.id}`} className={cn("flex flex-col items-center justify-center rounded-md border-2 p-3 font-semibold cursor-pointer hover:bg-status-taken-bg/80", medication.status === 'Taken' ? 'border-status-taken-fg bg-status-taken-bg text-status-taken-fg' : 'border-input bg-green-500/10 text-green-700', medication.status === 'Taken' && !isDue && 'cursor-not-allowed opacity-50')}>
                     <RadioGroupItem value="Taken" id={`taken-${medication.id}`} className="sr-only" />
                     <CheckCircle2 className="mb-2 h-6 w-6"/> Taken
                 </Label>
-                <Label htmlFor={`snoozed-${medication.id}`} className={cn("flex flex-col items-center justify-center rounded-md border-2 p-3 font-semibold cursor-pointer hover:bg-status-snoozed-bg/80", medication.status === 'Snoozed' ? 'border-status-snoozed-fg bg-status-snoozed-bg text-status-snoozed-fg' : 'border-input', medication.status === 'Taken' && !isDue && 'cursor-not-allowed opacity-50')}>
+                <Label htmlFor={`snoozed-${medication.id}`} className={cn("flex flex-col items-center justify-center rounded-md border-2 p-3 font-semibold cursor-pointer hover:bg-status-snoozed-bg/80", medication.status === 'Snoozed' ? 'border-status-snoozed-fg bg-status-snoozed-bg text-status-snoozed-fg' : 'border-input bg-yellow-500/10 text-yellow-700', medication.status === 'Taken' && !isDue && 'cursor-not-allowed opacity-50')}>
                     <RadioGroupItem value="Snoozed" id={`snoozed-${medication.id}`} className="sr-only" disabled={medication.status === 'Taken' && !isDue} />
                     <PauseCircle className="mb-2 h-6 w-6"/> Snooze
                 </Label>
-                <Label htmlFor={`missed-${medication.id}`} className={cn("flex flex-col items-center justify-center rounded-md border-2 p-3 font-semibold cursor-pointer hover:bg-status-missed-bg/80", medication.status === 'Missed' ? 'border-status-missed-fg bg-status-missed-bg text-status-missed-fg' : 'border-input', medication.status === 'Taken' && !isDue && 'cursor-not-allowed opacity-50')}>
+                <Label htmlFor={`missed-${medication.id}`} className={cn("flex flex-col items-center justify-center rounded-md border-2 p-3 font-semibold cursor-pointer hover:bg-status-missed-bg/80", medication.status === 'Missed' ? 'border-status-missed-fg bg-status-missed-bg text-status-missed-fg' : 'border-input bg-red-500/10 text-red-700', medication.status === 'Taken' && !isDue && 'cursor-not-allowed opacity-50')}>
                     <RadioGroupItem value="Missed" id={`missed-${medication.id}`} className="sr-only" disabled={medication.status === 'Taken' && !isDue} />
                     <XCircle className="mb-2 h-6 w-6"/> Missed
                 </Label>
