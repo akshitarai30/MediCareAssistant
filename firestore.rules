@@ -25,6 +25,10 @@ service cloud.firestore {
       match /medicationlogs/{logId} {
         allow read, write: if isOwner(userId);
       }
+
+      match /reports/{reportId} {
+        allow read, write: if isOwner(userId);
+      }
     }
   }
 }

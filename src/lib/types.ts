@@ -27,3 +27,13 @@ export interface MedicationLog {
     status: MedicationStatus;
     timestamp: Date | string;
 }
+
+export interface MedicalReport {
+  id?: string;
+  userId: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  uploadDate: Date | string;
+  storagePath: string;
+}

@@ -106,6 +106,39 @@
             }
         },
         "required": ["userId", "medicationId", "medicationName", "status", "timestamp"]
+    },
+    "MedicalReport": {
+        "title": "MedicalReport",
+        "type": "object",
+        "description": "Metadata for an uploaded medical report.",
+        "properties": {
+            "userId": {
+                "type": "string",
+                "description": "The ID of the user who owns the report."
+            },
+            "fileName": {
+                "type": "string",
+                "description": "The original name of the uploaded file."
+            },
+            "fileType": {
+                "type": "string",
+                "description": "The MIME type of the file (e.g., 'application/pdf')."
+            },
+            "fileSize": {
+                "type": "number",
+                "description": "The size of the file in bytes."
+            },
+            "uploadDate": {
+                "type": "string",
+                "description": "The date and time the report was uploaded.",
+                "format": "date-time"
+            },
+            "storagePath": {
+                "type": "string",
+                "description": "The path to the file in Firebase Storage."
+            }
+        },
+        "required": ["userId", "fileName", "fileType", "fileSize", "uploadDate", "storagePath"]
     }
   },
   "auth": {
@@ -168,6 +201,26 @@
             {
               "name": "logId",
               "description": "The unique ID of the log entry."
+            }
+          ]
+        }
+      },
+       {
+        "path": "/users/{userId}/reports/{reportId}",
+        "definition": {
+            "entityName": "MedicalReport",
+            "schema": {
+                "$ref": "#/backend/entities/MedicalReport"
+            },
+            "description": "Stores metadata for user-uploaded medical reports.",
+             "params": [
+             {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            },
+            {
+              "name": "reportId",
+              "description": "The unique ID of the report metadata document."
             }
           ]
         }

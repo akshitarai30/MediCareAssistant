@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { HeartPulse, Siren, LogOut, History } from 'lucide-react';
+import { HeartPulse, Siren, LogOut, History, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmergencyDialog } from '@/components/emergency-dialog';
 import { useAuth } from '@/firebase';
@@ -25,11 +25,17 @@ export function AppHeader() {
                 <span className="ml-2 text-xl font-bold">MediCare Assist</span>
             </Link>
           </div>
-          <div className="flex flex-1 items-center justify-end space-x-4">
+          <div className="flex flex-1 items-center justify-end space-x-2">
              <Button variant="ghost" asChild>
                 <Link href="/history">
                     <History className="mr-2 h-5 w-5" />
                     History
+                </Link>
+            </Button>
+            <Button variant="ghost" asChild>
+                <Link href="/reports">
+                    <FileText className="mr-2 h-5 w-5" />
+                    Reports
                 </Link>
             </Button>
             <Button
