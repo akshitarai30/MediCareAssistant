@@ -2,8 +2,8 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { format } from 'date-fns';
 import { FileText, UploadCloud, Trash2, Download } from 'lucide-react';
 
@@ -13,7 +13,7 @@ import type { MedicalReport } from '@/lib/types';
 
 import { AppHeader } from '@/components/app-header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { UploadReportDialog } from '@/components/upload-report-dialog';
@@ -99,12 +99,12 @@ export default function ReportsPage() {
   };
 
   const handleDeleteReport = async (report: MedicalReport) => {
-     if (!user) return;
-     const reportDocRef = doc(firestore, 'users', user.uid, 'reports', report.id!);
+     if (!user || !report.id) return;
+     const reportDocRef = doc(firestore, 'users', user.uid, 'reports', report.id);
      const storageRef = ref(storage, report.storagePath);
 
      try {
-       await deleteDoc(reportDocRef);
+       deleteDocumentNonBlocking(reportDocRef);
        await deleteObject(storageRef);
        toast({
          title: 'Report Deleted',
