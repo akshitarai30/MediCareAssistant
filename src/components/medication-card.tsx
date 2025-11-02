@@ -4,21 +4,35 @@ import * as React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Clock, CheckCircle2, XCircle, Bell, PauseCircle, AlertTriangle } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Bell, PauseCircle, Trash2 } from 'lucide-react';
 import { useCountdown } from '@/hooks/use-countdown';
 import { Medication, MedicationStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 
 interface MedicationCardProps {
   medication: Medication;
   onStatusChange: (id: string, status: MedicationStatus) => void;
   onDoseDue: () => void;
   onNotifyCaregiver: () => void;
+  onDelete: (id: string) => void;
 }
 
-export function MedicationCard({ medication, onStatusChange, onDoseDue, onNotifyCaregiver }: MedicationCardProps) {
+export function MedicationCard({ medication, onStatusChange, onDoseDue, onNotifyCaregiver, onDelete }: MedicationCardProps) {
   const { hours, minutes, seconds, isDue } = useCountdown(medication.nextDoseDate);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (isDue && medication.status === 'Upcoming') {
@@ -53,8 +67,37 @@ export function MedicationCard({ medication, onStatusChange, onDoseDue, onNotify
   return (
     <Card className={cn('flex flex-col transition-all duration-300', cardBorderColor, medication.status !== 'Upcoming' ? 'bg-muted/30' : '')}>
       <CardHeader>
-        <CardTitle className="text-xl">{medication.name}</CardTitle>
-        <CardDescription>{medication.dosage}</CardDescription>
+        <div className="flex justify-between items-start">
+            <div>
+                <CardTitle className="text-xl">{medication.name}</CardTitle>
+                <CardDescription>{medication.dosage}</CardDescription>
+            </div>
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the medication
+                    and all of its history.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => onDelete(medication.id)}
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+        </div>
       </CardHeader>
       <CardContent className="flex-grow flex flex-col justify-center">
         <div className="text-sm text-muted-foreground mb-2 flex items-center justify-center gap-2">

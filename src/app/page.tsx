@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, Check, Clock } from 'lucide-react';
+import { Bell, Check, Clock, Trash2 } from 'lucide-react';
 import { add, differenceInSeconds, parse, toDate } from 'date-fns';
 import { collection, doc, serverTimestamp, Timestamp } from 'firebase/firestore';
 
@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AddMedicationCard } from '@/components/add-medication-card';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
@@ -130,6 +130,21 @@ export default function Home() {
         icon: <Check className="h-5 w-5 text-green-500" />,
     });
   };
+
+  const handleDeleteMedication = (id: string) => {
+    if (!user) return;
+    const med = medications?.find(m => m.id === id);
+    if (!med) return;
+
+    const medicationDocRef = doc(firestore, 'users', user.uid, 'medications', id);
+    deleteDocumentNonBlocking(medicationDocRef);
+
+    toast({
+      title: 'Medication Deleted',
+      description: `${med.name} has been removed from your dashboard.`,
+      icon: <Trash2 className="h-5 w-5 text-destructive" />,
+    });
+  };
   
   const handleNotifyCaregiver = (medicationName: string) => {
     toast({
@@ -218,6 +233,7 @@ export default function Home() {
                     onStatusChange={handleStatusChange} 
                     onDoseDue={() => handleDoseDue(med as Medication)}
                     onNotifyCaregiver={() => handleNotifyCaregiver(med.name)}
+                    onDelete={handleDeleteMedication}
                 />
               ))}
               <AddMedicationCard onAdd={handleOpenAddDialog} />
