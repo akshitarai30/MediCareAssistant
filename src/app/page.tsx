@@ -12,6 +12,7 @@ import { MedicationCard } from '@/components/medication-card';
 import type { Medication, MedicationEntry, MedicationStatus } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AddMedicationCard } from '@/components/add-medication-card';
 
 export default function Home() {
   const [medications, setMedications] = React.useState<Medication[]>([]);
@@ -149,10 +150,6 @@ export default function Home() {
               <h1 className="text-3xl font-bold text-foreground tracking-tight">Medication Dashboard</h1>
               <p className="text-muted-foreground mt-1">Your daily medication schedule and tracker.</p>
             </div>
-            <Button size="lg" onClick={handleOpenAddDialog}>
-              <PlusCircle className="mr-2 h-5 w-5" />
-              Add Medication
-            </Button>
           </div>
 
           {isLoading && medications.length === 0 && (
@@ -183,6 +180,7 @@ export default function Home() {
                     onNotifyCaregiver={() => handleNotifyCaregiver(med.name)}
                 />
               ))}
+              <AddMedicationCard onAdd={handleOpenAddDialog} />
             </div>
           )}
         </div>
