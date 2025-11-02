@@ -42,25 +42,25 @@ export function MedicationCard({ medication, onStatusChange, onDoseDue, onNotify
   }, [isDue, medication.status, onDoseDue]);
 
   const cardBorderColor = 
-    medication.status === 'Taken' ? 'border-green-500/50' :
-    medication.status === 'Missed' ? 'border-red-500/50' :
-    medication.status === 'Snoozed' ? 'border-yellow-500/50' :
+    medication.status === 'Taken' ? 'border-status-taken-fg' :
+    medication.status === 'Missed' ? 'border-status-missed-fg' :
+    medication.status === 'Snoozed' ? 'border-status-snoozed-fg' :
     'border-border';
 
   const CountdownDisplay = () => {
     if (!medication.nextDoseDate) {
         return (
-          <div className="text-center text-green-600 font-semibold flex flex-col items-center gap-2">
+          <div className="text-center text-status-taken-fg font-semibold flex flex-col items-center gap-2">
             <CheckCircle2 className="h-8 w-8" />
             <span>Prescription complete!</span>
           </div>
         );
     }
      if (medication.status === 'Taken') {
-        return <div className="text-center text-green-600 font-semibold">Dose complete! Next dose soon.</div>;
+        return <div className="text-center text-status-taken-fg font-semibold">Dose complete! Next dose soon.</div>;
     }
     if (medication.status === 'Missed') {
-        return <div className="text-center text-red-600 font-semibold">Dose missed!</div>;
+        return <div className="text-center text-status-missed-fg font-semibold">Dose missed!</div>;
     }
     
     return (
@@ -71,7 +71,7 @@ export function MedicationCard({ medication, onStatusChange, onDoseDue, onNotify
   };
 
   return (
-    <Card className={cn('flex flex-col transition-all duration-300', cardBorderColor, medication.status !== 'Upcoming' ? 'bg-muted/30' : '')}>
+    <Card className={cn('flex flex-col transition-all duration-300 border-2', cardBorderColor, medication.status !== 'Upcoming' && !isDue ? 'bg-muted/30' : '')}>
       <CardHeader>
         <div className="flex justify-between items-start">
             <div>
@@ -128,16 +128,16 @@ export function MedicationCard({ medication, onStatusChange, onDoseDue, onNotify
                 className="grid grid-cols-3 gap-2 w-full"
                 disabled={medication.status === 'Taken' && !isDue}
               >
-                <Label htmlFor={`taken-${medication.id}`} className={cn("flex flex-col items-center justify-center rounded-md border-2 p-3 font-semibold cursor-pointer hover:bg-accent hover:text-accent-foreground", medication.status === 'Taken' && 'border-green-500 bg-green-500/10 text-green-700')}>
+                <Label htmlFor={`taken-${medication.id}`} className={cn("flex flex-col items-center justify-center rounded-md border-2 p-3 font-semibold cursor-pointer hover:bg-accent hover:text-accent-foreground", medication.status === 'Taken' && 'border-status-taken-fg bg-status-taken-bg text-status-taken-fg', medication.status === 'Taken' && !isDue && 'cursor-not-allowed opacity-50')}>
                     <RadioGroupItem value="Taken" id={`taken-${medication.id}`} className="sr-only" />
                     <CheckCircle2 className="mb-2 h-6 w-6"/> Taken
                 </Label>
-                <Label htmlFor={`snoozed-${medication.id}`} className={cn("flex flex-col items-center justify-center rounded-md border-2 p-3 font-semibold cursor-pointer hover:bg-accent hover:text-accent-foreground", medication.status === 'Snoozed' && 'border-yellow-500 bg-yellow-500/10 text-yellow-700')}>
-                    <RadioGroupItem value="Snoozed" id={`snoozed-${medication.id}`} className="sr-only" />
+                <Label htmlFor={`snoozed-${medication.id}`} className={cn("flex flex-col items-center justify-center rounded-md border-2 p-3 font-semibold cursor-pointer hover:bg-accent hover:text-accent-foreground", medication.status === 'Snoozed' && 'border-status-snoozed-fg bg-status-snoozed-bg text-status-snoozed-fg', medication.status === 'Taken' && !isDue && 'cursor-not-allowed opacity-50')}>
+                    <RadioGroupItem value="Snoozed" id={`snoozed-${medication.id}`} className="sr-only" disabled={medication.status === 'Taken' && !isDue} />
                     <PauseCircle className="mb-2 h-6 w-6"/> Snooze
                 </Label>
-                <Label htmlFor={`missed-${medication.id}`} className={cn("flex flex-col items-center justify-center rounded-md border-2 p-3 font-semibold cursor-pointer hover:bg-accent hover:text-accent-foreground", medication.status === 'Missed' && 'border-red-500 bg-red-500/10 text-red-700')}>
-                    <RadioGroupItem value="Missed" id={`missed-${medication.id}`} className="sr-only" />
+                <Label htmlFor={`missed-${medication.id}`} className={cn("flex flex-col items-center justify-center rounded-md border-2 p-3 font-semibold cursor-pointer hover:bg-accent hover:text-accent-foreground", medication.status === 'Missed' && 'border-status-missed-fg bg-status-missed-bg text-status-missed-fg', medication.status === 'Taken' && !isDue && 'cursor-not-allowed opacity-50')}>
+                    <RadioGroupItem value="Missed" id={`missed-${medication.id}`} className="sr-only" disabled={medication.status === 'Taken' && !isDue} />
                     <XCircle className="mb-2 h-6 w-6"/> Missed
                 </Label>
              </RadioGroup>

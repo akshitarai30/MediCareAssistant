@@ -41,9 +41,12 @@ body {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
-    --status-taken: 142.1 76.2% 36.3%;
-    --status-snoozed: 45 93.4% 47.5%;
-    --status-missed: 0 84.2% 60.2%;
+    --status-taken-bg: 142 76% 95%;
+    --status-taken-fg: 142.1 76.2% 36.3%;
+    --status-snoozed-bg: 50 93% 95%;
+    --status-snoozed-fg: 45 93.4% 47.5%;
+    --status-missed-bg: 0 84% 97%;
+    --status-missed-fg: 0 84.2% 60.2%;
   }
   .dark {
     --background: 222.2 47.4% 11.2%;
@@ -78,9 +81,12 @@ body {
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
-    --status-taken: 142.1 76.2% 46.3%;
-    --status-snoozed: 45 93.4% 57.5%;
-    --status-missed: 0 84.2% 70.2%;
+    --status-taken-bg: 142 76% 15%;
+    --status-taken-fg: 142.1 76.2% 46.3%;
+    --status-snoozed-bg: 50 93% 15%;
+    --status-snoozed-fg: 45 93.4% 57.5%;
+    --status-missed-bg: 0 84% 15%;
+    --status-missed-fg: 0 84.2% 70.2%;
   }
 }
 

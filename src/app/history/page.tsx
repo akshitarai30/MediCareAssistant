@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, writeBatch, getDocs } from 'firebase/firestore';
+import { collection, writeBatch, getDocs, query, orderBy } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Calendar, CheckCircle2, PauseCircle, XCircle, Pill, Trash2 } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -34,7 +34,7 @@ export default function HistoryPage() {
   const [isDeleting, setIsDeleting] = React.useState(false);
 
   const logsQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'medicationlogs') : null),
+    () => (user ? query(collection(firestore, 'users', user.uid, 'medicationlogs'), orderBy('timestamp', 'desc')) : null),
     [firestore, user]
   );
   
@@ -47,12 +47,13 @@ export default function HistoryPage() {
   }, [user, isUserLoading, router]);
   
   const handleClearHistory = async () => {
-    if (!user || !firestore || !logsQuery) return;
+    if (!user || !firestore) return;
+    const logsCollection = collection(firestore, 'users', user.uid, 'medicationlogs');
 
     setIsDeleting(true);
     try {
       const batch = writeBatch(firestore);
-      const querySnapshot = await getDocs(logsQuery);
+      const querySnapshot = await getDocs(logsCollection);
       querySnapshot.forEach(doc => {
         batch.delete(doc.ref);
       });
@@ -77,24 +78,24 @@ export default function HistoryPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'Taken':
-        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+        return <CheckCircle2 className="h-5 w-5 text-status-taken-fg" />;
       case 'Snoozed':
-        return <PauseCircle className="h-5 w-5 text-yellow-500" />;
+        return <PauseCircle className="h-5 w-5 text-status-snoozed-fg" />;
       case 'Missed':
-        return <XCircle className="h-5 w-5 text-red-500" />;
+        return <XCircle className="h-5 w-5 text-status-missed-fg" />;
       default:
-        return <Pill className="h-5 w-5 text-gray-400" />;
+        return <Pill className="h-5 w-5 text-muted-foreground" />;
     }
   };
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case 'Taken':
-        return 'default';
+        return 'taken';
       case 'Snoozed':
-        return 'secondary';
+        return 'snoozed';
       case 'Missed':
-        return 'destructive';
+        return 'missed';
       default:
         return 'outline';
     }
@@ -104,12 +105,14 @@ export default function HistoryPage() {
     if (!medicationLogs) return {};
     return medicationLogs.reduce((acc, log) => {
       if (!log.timestamp) return acc;
-      const date = format(new Date((log.timestamp as any).seconds * 1000), 'yyyy-MM-dd');
-      if (!acc[date]) {
-        acc[date] = [];
+      // Convert Firestore Timestamp to JS Date for formatting
+      const logDate = (log.timestamp as any).toDate ? (log.timestamp as any).toDate() : new Date(log.timestamp as string);
+      const dateKey = format(logDate, 'yyyy-MM-dd');
+
+      if (!acc[dateKey]) {
+        acc[dateKey] = [];
       }
-      acc[date].push(log);
-      acc[date].sort((a, b) => (b.timestamp as any).seconds - (a.timestamp as any).seconds);
+      acc[dateKey].push(log);
       return acc;
     }, {} as Record<string, MedicationLog[]>);
   }, [medicationLogs]);
@@ -210,14 +213,14 @@ export default function HistoryPage() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {groupedLogs[date].map(log => (
-                      <div key={log.id} className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
-                        <div className="p-2 bg-background rounded-full">
+                      <div key={log.id} className="flex items-center gap-4 p-3 rounded-lg bg-background">
+                        <div className="p-2 bg-muted/50 rounded-full">
                            {getStatusIcon(log.status)}
                         </div>
                         <div className="flex-1">
                           <p className="font-semibold">{log.medicationName}</p>
                           <p className="text-sm text-muted-foreground">
-                            {log.timestamp ? format(new Date((log.timestamp as any).seconds * 1000), 'p') : 'No time'}
+                            {log.timestamp && (log.timestamp as any).seconds ? format(new Date((log.timestamp as any).seconds * 1000), 'p') : 'No time'}
                           </p>
                         </div>
                         <Badge variant={getStatusBadgeVariant(log.status)}>{log.status}</Badge>
@@ -233,5 +236,3 @@ export default function HistoryPage() {
     </div>
   );
 }
-
-    
