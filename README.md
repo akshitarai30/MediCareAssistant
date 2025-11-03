@@ -61,7 +61,7 @@ Follow these instructions to get a copy of the project up and running on your lo
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18 or later recommended)
+- [Node.js](https://nodejs.org/)
 - [npm](https://www.npmjs.com/)
 
 ### Open a Local Folder
