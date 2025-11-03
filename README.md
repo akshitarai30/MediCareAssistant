@@ -11,16 +11,16 @@ MediCare Assist is an intelligent medication management application designed to 
 - **Dose Alerts**: Receive browser-based speech and toast notifications when a medication is due.
 - **Medication History**: View a complete, date-grouped log of all medication events (Taken, Snoozed, Missed).
 - **Clear History**: Option to permanently delete all medication history logs.
-- **Medical Reports**: Upload, view, and delete medical documents (PDFs, images). Files are securely stored in Firebase Storage.
+- **Medical Reports**: Upload, view, and delete medical documents.
 - **Emergency Button**: A quick-access button to simulate contacting emergency services.
 - **Responsive Design**: A clean and modern UI that works seamlessly across desktop and mobile devices.
 
 ## Tech Stack
 
 - **Framework**: [Next.js](https://nextjs.org/) (App Router)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/) with [shadcn/ui](https://ui.shadcn.com/) for components.
-- **Backend & Database**: [Firebase](https://firebase.google.com/) (Firestore, Firebase Authentication, Firebase Storage)
-- **Form Management**: [React Hook Form](https://react-hook-form.com/) with [Zod](https://zod.dev/) for validation.
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Backend & Database**: [Firebase](https://firebase.google.com/)
+- **Form Management**: [React Hook Form](https://react-hook-form.com/)
 - **UI Components**: `lucide-react` for icons, `date-fns` for date manipulation.
 - **Deployment**: Ready for Vercel [medi-care-assistant.vercel.app]
 
