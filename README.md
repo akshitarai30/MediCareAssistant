@@ -4,7 +4,7 @@ MediCare Assist is an intelligent medication management application designed to 
 
 ## Key Features
 
-- **User Authentication**: Secure sign-up and login functionality using Firebase Authentication (Email/Password).
+- **User Authentication**: Secure sign-up and login functionality using Authentication (Email/Password).
 - **Medication Dashboard**: A central hub to view all current medications, their dosages, and countdowns to the next dose.
 - **Add & Manage Prescriptions**: Easily add new medications, specifying dosage, timings, and the duration of the prescription.
 - **Medication Tracking**: Mark medications as "Taken", "Snoozed", or "Missed". The UI provides clear visual feedback with color-coding and disables actions when a dose is already taken.
