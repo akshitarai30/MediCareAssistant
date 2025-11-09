@@ -80,7 +80,7 @@ export default function LoginPage() {
             <HeartPulse className="h-10 w-10 text-primary" />
           </div>
           <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-          <CardDescription>Sign in to access your medication dashboard</CardDescription>
+          <CardDescription>Sign in with your email and password</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
