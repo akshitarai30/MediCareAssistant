@@ -1,4 +1,4 @@
-# **App Name**: MediScan Assist
+ **App Name**: MediScan Assist
 
 ## Core Features:
 
