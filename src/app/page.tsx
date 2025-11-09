@@ -293,15 +293,37 @@ export default function Home() {
     
     spokenAlerts.current.add(alertId);
 
-    setTimeout(() => {
+    // Set a timer to mark the dose as missed if no action is taken
+    setTimeout(async () => {
         if (!targetUserId) return;
+        
+        // Fetch the latest state of the medication before updating
         const medDocRef = doc(firestore, 'users', targetUserId, 'medications', med.id);
-        updateDocumentNonBlocking(medDocRef, { status: 'Missed' });
-        // After marking as missed, notify the caregiver
-        handleNotifyCaregiver(med.name);
+        const currentMedDoc = await getDoc(medDocRef);
+
+        if (currentMedDoc.exists()) {
+            const currentMedData = currentMedDoc.data() as Medication;
+            // Only mark as missed if the status is still 'Upcoming'
+            if (currentMedData.status === 'Upcoming') {
+                updateDocumentNonBlocking(medDocRef, { status: 'Missed' });
+                // Log the missed dose
+                 const logsCollectionRef = collection(firestore, 'users', targetUserId, 'medicationlogs');
+                 const logEntry: Omit<MedicationLog, 'id'> = {
+                    userId: targetUserId,
+                    medicationId: med.id,
+                    medicationName: med.name,
+                    status: 'Missed',
+                    timestamp: serverTimestamp() as unknown as string,
+                };
+                addDocumentNonBlocking(logsCollectionRef, logEntry);
+                // After marking as missed, notify the caregiver
+                handleNotifyCaregiver(med.name);
+            }
+        }
     }, 1000 * 60 * 5); // 5 minutes after due time
 
-  }, [toast, targetUserId, firestore, isCaregiverView]);
+  }, [toast, targetUserId, firestore, isCaregiverView, user?.displayName]);
+
 
   if (isUserLoading || !targetUserId) {
     return (
