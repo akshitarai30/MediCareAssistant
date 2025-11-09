@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
-import { doc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,14 +16,10 @@ import { useAuth, useUser, useFirestore, initiateEmailSignUp } from '@/firebase'
 import { HeartPulse } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-
 
 const registerSchema = z.object({
-  username: z.string().min(3, { message: 'Username must be at least 3 characters.' }),
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
-  role: z.enum(['patient', 'caregiver'], { required_error: 'You must select a role.' }),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -38,7 +34,7 @@ export default function RegisterPage() {
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { username: '', email: '', password: '', role: 'patient' },
+    defaultValues: { email: '', password: '' },
   });
 
   useEffect(() => {
@@ -50,27 +46,18 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterFormValues) => {
     setAuthError(null);
     try {
-      // Check if username is already taken
-      const usersRef = collection(firestore, 'users');
-      const q = query(usersRef, where('username', '==', data.username));
-      const querySnapshot = await getDocs(q);
-      
-      if (!querySnapshot.empty) {
-        throw new Error('Username is already taken.');
-      }
-
       const userCredential = await initiateEmailSignUp(auth, data.email, data.password);
       
       if (auth.currentUser) {
         const userDocRef = doc(firestore, 'users', auth.currentUser.uid);
+        const username = data.email.split('@')[0]; // Default username from email
         const userData = {
           id: auth.currentUser.uid,
-          username: data.username,
+          username: username,
           email: data.email,
-          role: data.role,
+          role: 'patient', // Default role
           registrationDate: new Date().toISOString(),
-          ...(data.role === 'caregiver' && { patientEmails: [] }),
-          ...(data.role === 'patient' && { caregiverEmails: [] }),
+          caregiverEmails: [],
         };
         setDocumentNonBlocking(userDocRef, userData, { merge: true });
       }
@@ -82,9 +69,7 @@ export default function RegisterPage() {
 
     } catch (error: any) {
       let errorMessage = 'An unexpected error occurred during registration.';
-      if (error.message === 'Username is already taken.') {
-          errorMessage = error.message;
-      } else if (error.code) {
+      if (error.code) {
         switch (error.code) {
           case 'auth/email-already-in-use':
             errorMessage = 'This email address is already in use.';
@@ -126,19 +111,6 @@ export default function RegisterPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-               <FormField
-                control={form.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Username</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., john_doe" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <FormField
                 control={form.control}
                 name="email"
@@ -160,40 +132,6 @@ export default function RegisterPage() {
                     <FormLabel>Password</FormLabel>
                     <FormControl>
                       <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>What is your role?</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-col space-y-1"
-                      >
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="patient" />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                           Patient
-                          </FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="caregiver" />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            Caregiver
-                          </FormLabel>
-                        </FormItem>
-                      </RadioGroup>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
