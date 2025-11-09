@@ -3,15 +3,17 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { HeartPulse, Siren, LogOut, History, FileText, Users } from 'lucide-react';
+import { HeartPulse, Siren, LogOut, History, FileText, Users, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmergencyDialog } from '@/components/emergency-dialog';
 import { useAuth, useUser } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
+import { AiAssistantSheet } from './ai-assistant-sheet';
 
 export function AppHeader() {
   const [isEmergencyDialogOpen, setIsEmergencyDialogOpen] = React.useState(false);
+  const [isAssistantOpen, setIsAssistantOpen] = React.useState(false);
   const auth = useAuth();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -76,6 +78,13 @@ export function AppHeader() {
             )}
           </nav>
           <div className="flex flex-1 items-center justify-end space-x-2">
+             <Button
+                variant="outline"
+                onClick={() => setIsAssistantOpen(true)}
+              >
+              <Bot className="mr-2 h-5 w-5" />
+              AI Assistant
+            </Button>
             <Button
               variant="destructive"
               className="font-bold shadow-md hover:shadow-lg transition-shadow"
@@ -92,6 +101,7 @@ export function AppHeader() {
         </div>
       </header>
       <EmergencyDialog open={isEmergencyDialogOpen} onOpenChange={setIsEmergencyDialogOpen} />
+      <AiAssistantSheet open={isAssistantOpen} onOpenChange={setIsAssistantOpen} />
     </>
   );
 }

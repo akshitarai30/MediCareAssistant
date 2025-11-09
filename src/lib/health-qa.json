@@ -1,0 +1,54 @@
+{
+    "knowledgeBase": [
+        {
+            "id": 1,
+            "keywords": ["headache", "migraine", "head hurt"],
+            "answer": "For a common headache, you can try resting in a quiet, dark room, drinking water, and taking over-the-counter pain relievers like ibuprofen or acetaminophen. If your headache is severe, recurring, or accompanied by other symptoms like fever or confusion, please consult a doctor."
+        },
+        {
+            "id": 2,
+            "keywords": ["fever", "temperature", "hot"],
+            "answer": "A fever is often a sign your body is fighting an infection. Make sure to drink plenty of fluids to stay hydrated and get lots of rest. You can take over-the-counter fever reducers. If your fever is very high (above 103°F or 39.4°C) or lasts for more than a few days, you should see a doctor."
+        },
+        {
+            "id": 3,
+            "keywords": ["cut", "scrape", "wound"],
+            "answer": "For a minor cut or scrape, first wash your hands. Then, gently clean the wound with cool water and mild soap. Apply a thin layer of antibiotic ointment and cover it with a clean bandage. If the cut is deep, won't stop bleeding, or shows signs of infection (like redness or pus), seek medical attention."
+        },
+        {
+            "id": 4,
+            "keywords": ["cold", "sore throat", "runny nose", "cough"],
+            "answer": "Common cold symptoms can be managed with rest, hydration, and over-the-counter medications. Gargling with salt water can soothe a sore throat, and a humidifier can help with a cough. Most colds resolve on their own, but if symptoms persist for more than 10 days or are severe, consult a healthcare provider."
+        },
+        {
+            "id": 5,
+            "keywords": ["flu", "influenza", "body aches"],
+            "answer": "The flu is more severe than a cold and often includes fever, body aches, and fatigue. The best treatment is rest and staying hydrated. Antiviral medications may be prescribed by a doctor if taken early. Getting an annual flu shot is the best way to prevent it."
+        },
+        {
+            "id": 6,
+            "keywords": ["burn", "scald"],
+            "answer": "For a minor first-degree burn, immediately run cool (not cold) water over the area for about 10-15 minutes. You can apply aloe vera gel to soothe it. Do not use ice or butter. For more severe burns with blisters or broken skin, or any burn on the face or major joints, seek immediate medical care."
+        },
+        {
+            "id": 7,
+            "keywords": ["allergic reaction", "hives", "rash", "itchy"],
+            "answer": "For a mild allergic reaction like a rash or hives, over-the-counter antihistamines can help. Avoid the substance that caused the reaction. If you experience difficulty breathing, swelling of the lips or face, or dizziness, this could be anaphylaxis, a life-threatening emergency. Call for emergency medical help immediately."
+        },
+        {
+            "id": 8,
+            "keywords": ["sleep", "insomnia", "can't sleep"],
+            "answer": "To improve sleep, try to maintain a regular sleep schedule, even on weekends. Create a relaxing bedtime routine, such as reading a book or taking a warm bath. Make sure your bedroom is dark, quiet, and cool. Avoid caffeine and large meals before bed. If insomnia persists, it's a good idea to talk to your doctor."
+        },
+        {
+            "id": 9,
+            "keywords": ["stress", "anxiety", "anxious"],
+            "answer": "Managing stress is important for overall health. Techniques like deep breathing exercises, mindfulness meditation, and regular physical activity can be very effective. It's also helpful to talk about your feelings with someone you trust. If you feel overwhelmed by stress or anxiety, consider seeking help from a mental health professional."
+        },
+        {
+            "id": 10,
+            "keywords": ["missed dose", "forgot medication"],
+            "answer": "If you miss a dose of your medication, check the instructions that came with your prescription. Often, the advice is to take the missed dose as soon as you remember. However, if it's almost time for your next dose, you may need to skip the missed one. Never take a double dose to make up for a missed one. If you're unsure, it's always best to call your pharmacist or doctor for advice."
+        }
+    ]
+}
