@@ -1,4 +1,4 @@
-'use client';
+'use-client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
-import { doc } from 'firebase/firestore';
+import { doc, collection, query, where, getDocs } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,7 +48,17 @@ export default function RegisterPage() {
   }, [user, isUserLoading, router]);
 
   const onSubmit = async (data: RegisterFormValues) => {
+    setAuthError(null);
     try {
+      // Check if username is already taken
+      const usersRef = collection(firestore, 'users');
+      const q = query(usersRef, where('username', '==', data.username));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        throw new Error('Username is already taken.');
+      }
+
       const userCredential = await initiateEmailSignUp(auth, data.email, data.password);
       
       if (auth.currentUser) {
@@ -72,7 +82,9 @@ export default function RegisterPage() {
 
     } catch (error: any) {
       let errorMessage = 'An unexpected error occurred during registration.';
-      if (error.code) {
+      if (error.message === 'Username is already taken.') {
+          errorMessage = error.message;
+      } else if (error.code) {
         switch (error.code) {
           case 'auth/email-already-in-use':
             errorMessage = 'This email address is already in use.';

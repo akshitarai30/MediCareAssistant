@@ -185,6 +185,13 @@ export default function Home() {
             updatedMedication.status = 'Upcoming'; // Reset to upcoming for the next dose
         }
     }
+    
+    if (status === 'Missed') {
+        // When a dose is missed, a caregiver on their device (not in caregiver view) should be notified
+        if (!isCaregiverView) { 
+            handleNotifyCaregiver(med.name);
+        }
+    }
 
     updateDocumentNonBlocking(medicationDocRef, updatedMedication);
     
@@ -250,7 +257,9 @@ export default function Home() {
         if (!targetUserId) return;
         const medDocRef = doc(firestore, 'users', targetUserId, 'medications', med.id);
         updateDocumentNonBlocking(medDocRef, { status: 'Missed' });
-    }, 1000 * 60 * 5);
+        // After marking as missed, notify the caregiver
+        handleNotifyCaregiver(med.name);
+    }, 1000 * 60 * 5); // 5 minutes after due time
 
   }, [toast, targetUserId, firestore, isCaregiverView]);
 

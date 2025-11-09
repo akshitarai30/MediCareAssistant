@@ -6,17 +6,18 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useAuth, useUser, initiateEmailSignIn } from '@/firebase';
+import { useAuth, useUser, initiateEmailSignIn, useFirestore } from '@/firebase';
 import { HeartPulse } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const loginSchema = z.object({
-  email: z.string().email({ message: 'Invalid email address.' }),
+  username: z.string().min(3, { message: 'Username must be at least 3 characters.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
 });
 
@@ -25,13 +26,14 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const [authError, setAuthError] = useState<string | null>(null);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { username: '', password: '' },
   });
 
   useEffect(() => {
@@ -41,23 +43,45 @@ export default function LoginPage() {
   }, [user, isUserLoading, router]);
 
   const onSubmit = async (data: LoginFormValues) => {
+    setAuthError(null);
     try {
-      initiateEmailSignIn(auth, data.email, data.password);
+      // 1. Find user by username
+      const usersRef = collection(firestore, 'users');
+      const q = query(usersRef, where('username', '==', data.username));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        throw new Error('User not found.');
+      }
+      
+      const userDoc = querySnapshot.docs[0];
+      const userData = userDoc.data();
+      const email = userData.email;
+
+      if (!email) {
+          throw new Error('Email not found for this user.');
+      }
+
+      // 2. Sign in with email and password
+      initiateEmailSignIn(auth, email, data.password);
+
     } catch (error: any) {
-       let errorMessage = 'An unexpected error occurred during sign-in.';
+       let errorMessage = 'Invalid username or password.';
        if (error.code) {
          switch (error.code) {
            case 'auth/user-not-found':
            case 'auth/wrong-password':
-             errorMessage = 'Invalid email or password.';
+             errorMessage = 'Invalid username or password.';
              break;
            case 'auth/invalid-email':
-             errorMessage = 'Please enter a valid email address.';
+             errorMessage = 'The email associated with this username is invalid.';
              break;
            default:
              errorMessage = 'Failed to sign in. Please try again later.';
              break;
          }
+       } else if (error.message === 'User not found.') {
+           errorMessage = 'Invalid username or password.';
        }
        setAuthError(errorMessage);
        toast({
@@ -80,19 +104,19 @@ export default function LoginPage() {
             <HeartPulse className="h-10 w-10 text-primary" />
           </div>
           <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-          <CardDescription>Sign in with your email and password</CardDescription>
+          <CardDescription>Sign in with your username and password</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="email"
+                name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Username</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="you@example.com" {...field} />
+                      <Input placeholder="your_username" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
