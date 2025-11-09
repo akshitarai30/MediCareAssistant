@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Bell, Check, Clock, Trash2, User as UserIcon, ArrowLeft } from 'lucide-react';
+import { Bell, Check, Clock, Trash2, User as UserIcon, ArrowLeft, Users } from 'lucide-react';
 import { add, differenceInSeconds, parse, toDate } from 'date-fns';
 import { collection, doc, serverTimestamp, Timestamp, getDoc } from 'firebase/firestore';
 
@@ -11,7 +11,7 @@ import { AppHeader } from '@/components/app-header';
 import { AddPrescriptionDialog } from '@/components/add-prescription-dialog';
 import { EmptyState } from '@/components/empty-state';
 import { MedicationCard } from '@/components/medication-card';
-import type { Medication, MedicationEntry, MedicationStatus, MedicationLog } from '@/lib/types';
+import type { Medication, MedicationEntry, MedicationStatus, MedicationLog, UserAccount } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AddMedicationCard } from '@/components/add-medication-card';
@@ -31,30 +31,70 @@ export default function Home() {
   
   const [isCaregiverView, setIsCaregiverView] = React.useState(false);
   const [patientInfo, setPatientInfo] = React.useState<{username: string} | null>(null);
+  const [currentUserProfile, setCurrentUserProfile] = React.useState<UserAccount | null>(null);
+
+  const { toast } = useToast();
+  const spokenAlerts = React.useRef<Set<string>>(new Set());
+  const notificationShownRef = React.useRef(false);
 
   React.useEffect(() => {
-    if (patientId && user) {
-        const checkCaregiverStatus = async () => {
-            const userDocRef = doc(firestore, 'users', user.uid);
-            const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists() && userDoc.data().role === 'caregiver') {
-                setIsCaregiverView(true);
-                // Fetch patient info
-                const patientDocRef = doc(firestore, 'users', patientId);
-                const patientDoc = await getDoc(patientDocRef);
-                if (patientDoc.exists()) {
-                    setPatientInfo({ username: patientDoc.data().username });
-                }
-            } else {
-                // Not a caregiver, redirect
-                router.push('/');
-            }
-        };
-        checkCaregiverStatus();
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
+
+  React.useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user?.uid) {
+        const userDocRef = doc(firestore, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const profile = userDoc.data() as UserAccount;
+          setCurrentUserProfile(profile);
+
+          if (profile.role === 'caregiver' && !patientId && !notificationShownRef.current) {
+            notificationShownRef.current = true; // Prevents showing multiple times
+            toast({
+              title: 'Welcome Caregiver!',
+              description: (
+                <div className="flex flex-col gap-2">
+                  <span>You are in caregiver mode.</span>
+                  <Button asChild size="sm">
+                    <Link href="/patients">
+                      <Users className="mr-2" /> Go to Patients
+                    </Link>
+                  </Button>
+                </div>
+              ),
+              duration: 10000,
+            });
+          }
+        }
+      }
+    };
+    fetchUserProfile();
+  }, [user, firestore, toast, patientId]);
+
+  React.useEffect(() => {
+    if (patientId && currentUserProfile) {
+        if (currentUserProfile.role === 'caregiver') {
+            setIsCaregiverView(true);
+            const fetchPatientInfo = async () => {
+              const patientDocRef = doc(firestore, 'users', patientId);
+              const patientDoc = await getDoc(patientDocRef);
+              if (patientDoc.exists()) {
+                  setPatientInfo({ username: patientDoc.data().username });
+              }
+            };
+            fetchPatientInfo();
+        } else {
+            // Not a caregiver, redirect
+            router.push('/');
+        }
     } else {
         setIsCaregiverView(false);
     }
-  }, [patientId, user, firestore, router]);
+  }, [patientId, currentUserProfile, firestore, router]);
 
 
   const medicationsQuery = useMemoFirebase(() => 
@@ -64,14 +104,6 @@ export default function Home() {
   const { data: medications, isLoading: isMedicationsLoading } = useCollection<Medication>(medicationsQuery);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
-  const { toast } = useToast();
-  const spokenAlerts = React.useRef<Set<string>>(new Set());
-
-  React.useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, isUserLoading, router]);
 
   const handleOpenAddDialog = () => setIsAddDialogOpen(true);
 
