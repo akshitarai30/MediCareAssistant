@@ -66,9 +66,12 @@ export default {
           ring: 'hsl(var(--sidebar-ring))',
         },
         status: {
-            taken: 'hsl(var(--status-taken))',
-            snoozed: 'hsl(var(--status-snoozed))',
-            missed: 'hsl(var(--status-missed))',
+            'taken-bg': 'hsl(var(--status-taken-bg))',
+            'taken-fg': 'hsl(var(--status-taken-fg))',
+            'snoozed-bg': 'hsl(var(--status-snoozed-bg))',
+            'snoozed-fg': 'hsl(var(--status-snoozed-fg))',
+            'missed-bg': 'hsl(var(--status-missed-bg))',
+            'missed-fg': 'hsl(var(--status-missed-fg))',
         }
       },
       borderRadius: {
