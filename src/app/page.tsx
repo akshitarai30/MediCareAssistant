@@ -19,6 +19,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
+import { AppLayout } from '@/components/app-layout';
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
@@ -344,74 +345,76 @@ export default function Home() {
   }));
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <AppHeader />
-      <main className="flex-1 p-4 sm:p-6 md:p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-            <div>
-             {isCaregiverView && patientInfo ? (
-                <>
-                  <Link href="/patients" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-2">
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Patients
-                  </Link>
-                  <div className="flex items-center gap-3">
-                    <UserIcon className="h-8 w-8 text-primary" />
-                    <div>
-                      <h1 className="text-3xl font-bold text-foreground tracking-tight">{patientInfo.username}'s Dashboard</h1>
-                      <p className="text-muted-foreground mt-1">Viewing and managing medication for your patient.</p>
+    <AppLayout>
+      <div className="flex flex-col min-h-screen">
+        <AppHeader />
+        <main className="flex-1 p-4 sm:p-6 md:p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+              <div>
+               {isCaregiverView && patientInfo ? (
+                  <>
+                    <Link href="/patients" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-2">
+                      <ArrowLeft className="h-4 w-4" />
+                      Back to Patients
+                    </Link>
+                    <div className="flex items-center gap-3">
+                      <UserIcon className="h-8 w-8 text-primary" />
+                      <div>
+                        <h1 className="text-3xl font-bold text-foreground tracking-tight">{patientInfo.username}'s Dashboard</h1>
+                        <p className="text-muted-foreground mt-1">Viewing and managing medication for your patient.</p>
+                      </div>
                     </div>
-                  </div>
-                </>
-              ) : (
-                 <>
-                  <h1 className="text-3xl font-bold text-foreground tracking-tight">Medication Dashboard</h1>
-                  <p className="text-muted-foreground mt-1">Your daily medication schedule and tracker.</p>
-                </>
-              )}
+                  </>
+                ) : (
+                   <>
+                    <h1 className="text-3xl font-bold text-foreground tracking-tight">Medication Dashboard</h1>
+                    <p className="text-muted-foreground mt-1">Your daily medication schedule and tracker.</p>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
 
-          {(isMedicationsLoading || processedMedications.length === 0) && (
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {isMedicationsLoading && [...Array(3)].map((_, i) => (
-                    <div key={i} className="flex flex-col space-y-3 p-6 rounded-xl border bg-card">
-                        <Skeleton className="h-6 w-3/5 rounded-md" />
-                        <Skeleton className="h-4 w-4/5 rounded-md" />
-                        <div className="pt-4 space-y-4">
-                           <Skeleton className="h-10 w-full rounded-md" />
-                           <Skeleton className="h-16 w-full rounded-md" />
-                        </div>
-                    </div>
+            {(isMedicationsLoading || processedMedications.length === 0) && (
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {isMedicationsLoading && [...Array(3)].map((_, i) => (
+                      <div key={i} className="flex flex-col space-y-3 p-6 rounded-xl border bg-card">
+                          <Skeleton className="h-6 w-3/5 rounded-md" />
+                          <Skeleton className="h-4 w-4/5 rounded-md" />
+                          <div className="pt-4 space-y-4">
+                             <Skeleton className="h-10 w-full rounded-md" />
+                             <Skeleton className="h-16 w-full rounded-md" />
+                          </div>
+                      </div>
+                  ))}
+               </div>
+            )}
+
+            {!isMedicationsLoading && processedMedications.length === 0 && <EmptyState onAdd={handleOpenAddDialog} />}
+            
+            {!isMedicationsLoading && processedMedications.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {processedMedications.map(med => (
+                  <MedicationCard 
+                      key={med.id} 
+                      medication={med as Medication}
+                      onStatusChange={handleStatusChange} 
+                      onDoseDue={() => handleDoseDue(med as Medication)}
+                      onNotifyCaregiver={() => handleNotifyCaregiver(med.name)}
+                      onDelete={handleDeleteMedication}
+                  />
                 ))}
-             </div>
-          )}
-
-          {!isMedicationsLoading && processedMedications.length === 0 && <EmptyState onAdd={handleOpenAddDialog} />}
-          
-          {!isMedicationsLoading && processedMedications.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {processedMedications.map(med => (
-                <MedicationCard 
-                    key={med.id} 
-                    medication={med as Medication}
-                    onStatusChange={handleStatusChange} 
-                    onDoseDue={() => handleDoseDue(med as Medication)}
-                    onNotifyCaregiver={() => handleNotifyCaregiver(med.name)}
-                    onDelete={handleDeleteMedication}
-                />
-              ))}
-              <AddMedicationCard onAdd={handleOpenAddDialog} />
-            </div>
-          )}
-        </div>
-      </main>
-      <AddPrescriptionDialog
-        open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
-        onAddMedication={handleAddMedication}
-      />
-    </div>
+                <AddMedicationCard onAdd={handleOpenAddDialog} />
+              </div>
+            )}
+          </div>
+        </main>
+        <AddPrescriptionDialog
+          open={isAddDialogOpen}
+          onOpenChange={setIsAddDialogOpen}
+          onAddMedication={handleAddMedication}
+        />
+      </div>
+    </AppLayout>
   );
 }

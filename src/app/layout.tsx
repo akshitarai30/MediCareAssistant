@@ -5,15 +5,12 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase';
-import { AiAssistantSheet } from '@/components/ai-assistant-sheet';
-import { AiFab } from '@/components/ai-fab';
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [isAssistantOpen, setIsAssistantOpen] = React.useState(false);
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -30,8 +27,6 @@ export default function RootLayout({
           {children}
         </FirebaseClientProvider>
         <Toaster />
-        <AiFab onOpen={() => setIsAssistantOpen(true)} />
-        <AiAssistantSheet open={isAssistantOpen} onOpenChange={setIsAssistantOpen} />
       </body>
     </html>
   );

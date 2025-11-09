@@ -36,6 +36,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { AppLayout } from '@/components/app-layout';
 
 export default function ReportsPage() {
   const { user, isUserLoading } = useUser();
@@ -166,7 +167,7 @@ export default function ReportsPage() {
   }
 
   return (
-    <>
+    <AppLayout>
       <div className="flex flex-col min-h-screen">
         <AppHeader />
         <main className="flex-1 p-4 sm:p-6 md:p-8">
@@ -268,7 +269,7 @@ export default function ReportsPage() {
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </AppLayout>
   );
 }
 
