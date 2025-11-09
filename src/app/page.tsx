@@ -227,6 +227,14 @@ export default function Home() {
   };
   
   const handleNotifyCaregiver = (medicationName: string) => {
+    const patientName = user?.displayName || 'The patient';
+    const notificationMessage = `${patientName} has missed their dose of ${medicationName}.`;
+    
+    if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(notificationMessage);
+        window.speechSynthesis.speak(utterance);
+    }
+    
     toast({
         title: 'Caregiver Notified',
         description: `A notification for the missed dose of ${medicationName} has been sent.`,
