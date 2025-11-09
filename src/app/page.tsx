@@ -41,5 +41,4 @@ function Home() {
   const router = useRouter();
   const searchParams = useSearchParams(); // ✅ now safely inside Suspense
   const firestore = useFirestore();
-
-  
+}
