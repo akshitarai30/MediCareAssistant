@@ -1,19 +1,20 @@
-import type { Metadata } from 'next';
+'use client';
+
+import * as React from 'react';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase';
-
-export const metadata: Metadata = {
-  title: 'MediCare Assist',
-  description: 'Intelligent medication management.',
-};
+import { AiAssistantSheet } from '@/components/ai-assistant-sheet';
+import { AiFab } from '@/components/ai-fab';
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const [isAssistantOpen, setIsAssistantOpen] = React.useState(false);
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -29,6 +30,8 @@ export default function RootLayout({
           {children}
         </FirebaseClientProvider>
         <Toaster />
+        <AiFab onOpen={() => setIsAssistantOpen(true)} />
+        <AiAssistantSheet open={isAssistantOpen} onOpenChange={setIsAssistantOpen} />
       </body>
     </html>
   );
