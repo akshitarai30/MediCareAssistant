@@ -19,10 +19,6 @@
           "description": "The user's email address.",
           "format": "email"
         },
-        "phoneNumber": {
-          "type": "string",
-          "description": "The user's phone number for contact and alerts."
-        },
         "registrationDate": {
           "type": "string",
           "description": "The date and time the user registered.",
@@ -32,6 +28,16 @@
           "type": "string",
           "description": "The role of the user, either 'patient' or 'caregiver'.",
           "enum": ["patient", "caregiver"]
+        },
+        "patientEmails": {
+            "type": "array",
+            "description": "A list of patient email addresses this caregiver monitors.",
+            "items": { "type": "string", "format": "email" }
+        },
+        "caregiverEmails": {
+            "type": "array",
+            "description": "A list of caregiver email addresses monitoring this patient.",
+            "items": { "type": "string", "format": "email" }
         }
       },
       "required": [

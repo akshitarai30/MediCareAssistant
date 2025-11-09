@@ -1,10 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
-import { Bell, Check, Clock, Trash2 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Bell, Check, Clock, Trash2, User as UserIcon, ArrowLeft } from 'lucide-react';
 import { add, differenceInSeconds, parse, toDate } from 'date-fns';
-import { collection, doc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, Timestamp, getDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { AppHeader } from '@/components/app-header';
@@ -17,15 +17,49 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AddMedicationCard } from '@/components/add-medication-card';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import Link from 'next/link';
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const firestore = useFirestore();
   
+  const patientId = searchParams.get('patientId');
+  const targetUserId = patientId || user?.uid;
+  
+  const [isCaregiverView, setIsCaregiverView] = React.useState(false);
+  const [patientInfo, setPatientInfo] = React.useState<{username: string} | null>(null);
+
+  React.useEffect(() => {
+    if (patientId && user) {
+        const checkCaregiverStatus = async () => {
+            const userDocRef = doc(firestore, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists() && userDoc.data().role === 'caregiver') {
+                setIsCaregiverView(true);
+                // Fetch patient info
+                const patientDocRef = doc(firestore, 'users', patientId);
+                const patientDoc = await getDoc(patientDocRef);
+                if (patientDoc.exists()) {
+                    setPatientInfo({ username: patientDoc.data().username });
+                }
+            } else {
+                // Not a caregiver, redirect
+                router.push('/');
+            }
+        };
+        checkCaregiverStatus();
+    } else {
+        setIsCaregiverView(false);
+    }
+  }, [patientId, user, firestore, router]);
+
+
   const medicationsQuery = useMemoFirebase(() => 
-    user ? collection(firestore, 'users', user.uid, 'medications') : null
-  , [firestore, user]);
+    targetUserId ? collection(firestore, 'users', targetUserId, 'medications') : null
+  , [firestore, targetUserId]);
 
   const { data: medications, isLoading: isMedicationsLoading } = useCollection<Medication>(medicationsQuery);
 
@@ -42,7 +76,7 @@ export default function Home() {
   const handleOpenAddDialog = () => setIsAddDialogOpen(true);
 
   const handleAddMedication = async (medicationData: MedicationEntry) => {
-    if (!user) return;
+    if (!targetUserId) return;
 
     setIsAddDialogOpen(false);
     
@@ -77,15 +111,15 @@ export default function Home() {
         nextDoseTime,
         nextDoseDate: nextDoseDate ? Timestamp.fromDate(nextDoseDate) : null,
         prescriptionEndDate: Timestamp.fromDate(prescriptionEndDate),
-        userId: user.uid,
+        userId: targetUserId,
       };
 
-      const medicationsCollection = collection(firestore, 'users', user.uid, 'medications');
+      const medicationsCollection = collection(firestore, 'users', targetUserId, 'medications');
       addDocumentNonBlocking(medicationsCollection, newMedication);
 
       toast({
         title: 'Medication Added',
-        description: `${newMedication.name} has been added to your dashboard.`,
+        description: `${newMedication.name} has been added.`,
       });
 
     } catch (error) {
@@ -99,21 +133,27 @@ export default function Home() {
   };
 
   const handleStatusChange = (id: string, status: MedicationStatus) => {
-    if(!user) return;
+    if(!targetUserId) return;
     
     const med = medications?.find(m => m.id === id);
     if (!med) return;
 
-    const medicationDocRef = doc(firestore, 'users', user.uid, 'medications', id);
-    const logsCollectionRef = collection(firestore, 'users', user.uid, 'medicationlogs');
+    const medicationDocRef = doc(firestore, 'users', targetUserId, 'medications', id);
+    const logsCollectionRef = collection(firestore, 'users', targetUserId, 'medicationlogs');
     
     let description = `You've marked ${med.name} as ${status.toLowerCase()}.`;
+    if (isCaregiverView) {
+        description = `${patientInfo?.username} medication ${med.name} marked as ${status.toLowerCase()}.`;
+    }
     let updatedMedication: Partial<Medication> = { status };
 
     if (status === 'Snoozed') {
         const newDate = add(new Date(), { minutes: 10 });
         updatedMedication.nextDoseDate = Timestamp.fromDate(newDate);
         description = `${med.name} has been snoozed for 10 minutes.`;
+         if (isCaregiverView) {
+            description = `${patientInfo?.username} medication ${med.name} has been snoozed.`;
+        }
     }
 
     if (status === 'Taken') {
@@ -138,6 +178,7 @@ export default function Home() {
             updatedMedication.nextDoseTime = null;
             updatedMedication.status = 'Taken'; // Or maybe a new 'Completed' status
             description = `You have completed your prescription for ${med.name}.`;
+            if(isCaregiverView) description = `${patientInfo?.username} has completed the prescription for ${med.name}.`
         } else {
             updatedMedication.nextDoseDate = Timestamp.fromDate(nextDose);
             updatedMedication.nextDoseTime = `${String(nextDose.getHours()).padStart(2, '0')}:${String(nextDose.getMinutes()).padStart(2, '0')}`;
@@ -148,7 +189,7 @@ export default function Home() {
     updateDocumentNonBlocking(medicationDocRef, updatedMedication);
     
     const logEntry: Omit<MedicationLog, 'id'> = {
-        userId: user.uid,
+        userId: targetUserId,
         medicationId: id,
         medicationName: med.name,
         status: status,
@@ -164,16 +205,16 @@ export default function Home() {
   };
 
   const handleDeleteMedication = (id: string) => {
-    if (!user) return;
+    if (!targetUserId) return;
     const med = medications?.find(m => m.id === id);
     if (!med) return;
 
-    const medicationDocRef = doc(firestore, 'users', user.uid, 'medications', id);
+    const medicationDocRef = doc(firestore, 'users', targetUserId, 'medications', id);
     deleteDocumentNonBlocking(medicationDocRef);
 
     toast({
       title: 'Medication Deleted',
-      description: `${med.name} has been removed from your dashboard.`,
+      description: `${med.name} has been removed.`,
       icon: <Trash2 className="h-5 w-5 text-destructive" />,
     });
   };
@@ -189,6 +230,7 @@ export default function Home() {
   const handleDoseDue = React.useCallback((med: Medication) => {
     const alertId = `${med.id}-${med.nextDoseTime}`;
     if (spokenAlerts.current.has(alertId)) return;
+    if(isCaregiverView) return; // Don't show alerts for patients
 
     if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(`Time to take your ${med.name}.`);
@@ -205,14 +247,14 @@ export default function Home() {
     spokenAlerts.current.add(alertId);
 
     setTimeout(() => {
-        if (!user) return;
-        const medDocRef = doc(firestore, 'users', user.uid, 'medications', med.id);
+        if (!targetUserId) return;
+        const medDocRef = doc(firestore, 'users', targetUserId, 'medications', med.id);
         updateDocumentNonBlocking(medDocRef, { status: 'Missed' });
     }, 1000 * 60 * 5);
 
-  }, [toast, user, firestore]);
+  }, [toast, targetUserId, firestore, isCaregiverView]);
 
-  if (isUserLoading || !user) {
+  if (isUserLoading || !targetUserId) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Skeleton className="h-12 w-12 rounded-full" />
@@ -237,8 +279,26 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-foreground tracking-tight">Medication Dashboard</h1>
-              <p className="text-muted-foreground mt-1">Your daily medication schedule and tracker.</p>
+             {isCaregiverView && patientInfo ? (
+                <>
+                  <Link href="/patients" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-2">
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to Patients
+                  </Link>
+                  <div className="flex items-center gap-3">
+                    <UserIcon className="h-8 w-8 text-primary" />
+                    <div>
+                      <h1 className="text-3xl font-bold text-foreground tracking-tight">{patientInfo.username}'s Dashboard</h1>
+                      <p className="text-muted-foreground mt-1">Viewing and managing medication for your patient.</p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                 <>
+                  <h1 className="text-3xl font-bold text-foreground tracking-tight">Medication Dashboard</h1>
+                  <p className="text-muted-foreground mt-1">Your daily medication schedule and tracker.</p>
+                </>
+              )}
             </div>
           </div>
 

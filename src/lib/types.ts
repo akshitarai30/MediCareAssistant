@@ -1,5 +1,14 @@
 export type MedicationStatus = "Taken" | "Snoozed" | "Missed" | "Upcoming";
 
+export interface UserAccount {
+    id: string;
+    username: string;
+    email: string;
+    role: 'patient' | 'caregiver';
+    patientEmails?: string[];
+    caregiverEmails?: string[];
+}
+
 export interface Medication {
   id: string;
   name: string;

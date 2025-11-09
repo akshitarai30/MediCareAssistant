@@ -1,11 +1,11 @@
 /**
  * @file Firebase Security Rules for MediCare Assist.
  *
- * @core_philosophy This ruleset enforces a strict user-ownership model. Each user can only access their own data stored under their /users/{userId} path.
+ * @core_philosophy This ruleset enforces a strict user-ownership model, with an exception for caregivers.
  * @data_structure All user data is nested under /users/{userId}, ensuring clear ownership.
  * @key_security_decisions
  *   - Users cannot list all other users.
- *   - Data validation is relaxed during prototyping to focus on authorization.
+ *   - A user can only access their own data unless they are a designated caregiver for another user.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -15,19 +15,33 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
+    function isCaregiverForUser(userId) {
+      // Allow if the requesting user is a caregiver and their email is in the patient's caregiverEmails list.
+      return request.auth.token.email != null &&
+             get(/databases/$(database)/documents/users/$(userId)).data.caregiverEmails.hasAny([request.auth.token.email]);
+    }
+    
+    function isPatientOfCaregiver(userId) {
+        // Allow if the requesting user is a caregiver and the target patient's email is in their patientEmails list.
+        let caregiverDoc = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+        let patientEmail = get(/databases/$(database)/documents/users/$(userId)).data.email;
+        return caregiverDoc.role == 'caregiver' && caregiverDoc.patientEmails.hasAny([patientEmail]);
+    }
+
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read, write: if isOwner(userId) || isCaregiverForUser(userId);
 
       match /medications/{medicationId} {
-        allow read, write: if isOwner(userId);
+        allow read, write: if isOwner(userId) || isPatientOfCaregiver(userId);
       }
 
       match /medicationlogs/{logId} {
-        allow read, write: if isOwner(userId);
+        allow read: if isOwner(userId) || isPatientOfCaregiver(userId);
+        allow write: if isOwner(userId) || isPatientOfCaregiver(userId);
       }
 
       match /reports/{reportId} {
-        allow read, write: if isOwner(userId);
+        allow read, write: if isOwner(userId) || isPatientOfCaregiver(userId);
       }
     }
   }
