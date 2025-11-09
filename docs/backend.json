@@ -27,12 +27,18 @@
           "type": "string",
           "description": "The date and time the user registered.",
           "format": "date-time"
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user, either 'patient' or 'caregiver'.",
+          "enum": ["patient", "caregiver"]
         }
       },
       "required": [
         "id",
         "username",
-        "email"
+        "email",
+        "role"
       ]
     },
     "Medication": {

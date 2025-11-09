@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,12 +16,14 @@ import { useAuth, useUser, useFirestore, initiateEmailSignUp } from '@/firebase'
 import { HeartPulse } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 
 const registerSchema = z.object({
   username: z.string().min(3, { message: 'Username must be at least 3 characters.' }),
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  role: z.enum(['patient', 'caregiver'], { required_error: 'You must select a role.' }),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -55,6 +57,7 @@ export default function RegisterPage() {
           id: auth.currentUser.uid,
           username: data.username,
           email: data.email,
+          role: data.role,
           phoneNumber: '', // Not collecting phone number in this form
           registrationDate: new Date().toISOString(),
         };
@@ -144,6 +147,40 @@ export default function RegisterPage() {
                     <FormLabel>Password</FormLabel>
                     <FormControl>
                       <Input type="password" placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel>I am a...</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="flex flex-col space-y-1"
+                      >
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                          <FormControl>
+                            <RadioGroupItem value="patient" />
+                          </FormControl>
+                          <FormLabel className="font-normal">
+                            Patient
+                          </FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                          <FormControl>
+                            <RadioGroupItem value="caregiver" />
+                          </FormControl>
+                          <FormLabel className="font-normal">
+                            Caregiver
+                          </FormLabel>
+                        </FormItem>
+                      </RadioGroup>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
