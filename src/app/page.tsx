@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, Check, Clock, Trash2 } from 'lucide-react';
 import { add, differenceInSeconds, parse, toDate } from 'date-fns';
-import { collection, doc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, Timestamp, getDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { AppHeader } from '@/components/app-header';
@@ -17,15 +17,21 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AddMedicationCard } from '@/components/add-medication-card';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { AppLayout } from '@/components/app-layout';
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const firestore = useFirestore();
-  
+  const [isCaregiver, setIsCaregiver] = React.useState(false);
+
+  // Determine whose data to fetch based on URL param for caregivers
+  const [patientId, setPatientId] = React.useState<string | null>(null);
+  const displayUserId = patientId || user?.uid;
+
   const medicationsQuery = useMemoFirebase(() => 
-    user ? collection(firestore, 'users', user.uid, 'medications') : null
-  , [firestore, user]);
+    displayUserId ? collection(firestore, 'users', displayUserId, 'medications') : null
+  , [firestore, displayUserId]);
 
   const { data: medications, isLoading: isMedicationsLoading } = useCollection<Medication>(medicationsQuery);
 
@@ -37,12 +43,39 @@ export default function Home() {
     if (!isUserLoading && !user) {
       router.push('/login');
     }
-  }, [user, isUserLoading, router]);
+    // Logic for caregiver view
+    const searchParams = new URLSearchParams(window.location.search);
+    const pid = searchParams.get('patientId');
+    if (pid) {
+      setPatientId(pid);
+    }
+
+    const checkRole = async () => {
+        if(user) {
+            const userDoc = await getDoc(doc(firestore, 'users', user.uid));
+            if(userDoc.exists() && userDoc.data().role === 'caregiver') {
+                setIsCaregiver(true);
+            }
+        }
+    };
+    checkRole();
+
+  }, [user, isUserLoading, router, firestore]);
+
+   React.useEffect(() => {
+    if (isCaregiver && !patientId && medications?.length === 0) {
+      toast({
+        title: 'Welcome, Caregiver!',
+        description: 'Select a patient from the "My Patients" page to view their dashboard.',
+      });
+    }
+  }, [isCaregiver, patientId, medications, toast]);
+
 
   const handleOpenAddDialog = () => setIsAddDialogOpen(true);
 
   const handleAddMedication = async (medicationData: MedicationEntry) => {
-    if (!user) return;
+    if (!displayUserId) return;
 
     setIsAddDialogOpen(false);
     
@@ -77,15 +110,15 @@ export default function Home() {
         nextDoseTime,
         nextDoseDate: nextDoseDate ? Timestamp.fromDate(nextDoseDate) : null,
         prescriptionEndDate: Timestamp.fromDate(prescriptionEndDate),
-        userId: user.uid,
+        userId: displayUserId,
       };
 
-      const medicationsCollection = collection(firestore, 'users', user.uid, 'medications');
+      const medicationsCollection = collection(firestore, 'users', displayUserId, 'medications');
       addDocumentNonBlocking(medicationsCollection, newMedication);
 
       toast({
         title: 'Medication Added',
-        description: `${newMedication.name} has been added to your dashboard.`,
+        description: `${newMedication.name} has been added to the dashboard.`,
       });
 
     } catch (error) {
@@ -99,13 +132,13 @@ export default function Home() {
   };
 
   const handleStatusChange = (id: string, status: MedicationStatus) => {
-    if(!user) return;
+    if(!displayUserId) return;
     
     const med = medications?.find(m => m.id === id);
     if (!med) return;
 
-    const medicationDocRef = doc(firestore, 'users', user.uid, 'medications', id);
-    const logsCollectionRef = collection(firestore, 'users', user.uid, 'medicationlogs');
+    const medicationDocRef = doc(firestore, 'users', displayUserId, 'medications', id);
+    const logsCollectionRef = collection(firestore, 'users', displayUserId, 'medicationlogs');
     
     let description = `You've marked ${med.name} as ${status.toLowerCase()}.`;
     let updatedMedication: Partial<Medication> = { status };
@@ -148,7 +181,7 @@ export default function Home() {
     updateDocumentNonBlocking(medicationDocRef, updatedMedication);
     
     const logEntry: Omit<MedicationLog, 'id'> = {
-        userId: user.uid,
+        userId: displayUserId,
         medicationId: id,
         medicationName: med.name,
         status: status,
@@ -164,16 +197,16 @@ export default function Home() {
   };
 
   const handleDeleteMedication = (id: string) => {
-    if (!user) return;
+    if (!displayUserId) return;
     const med = medications?.find(m => m.id === id);
     if (!med) return;
 
-    const medicationDocRef = doc(firestore, 'users', user.uid, 'medications', id);
+    const medicationDocRef = doc(firestore, 'users', displayUserId, 'medications', id);
     deleteDocumentNonBlocking(medicationDocRef);
 
     toast({
       title: 'Medication Deleted',
-      description: `${med.name} has been removed from your dashboard.`,
+      description: `${med.name} has been removed from the dashboard.`,
       icon: <Trash2 className="h-5 w-5 text-destructive" />,
     });
   };
@@ -187,6 +220,7 @@ export default function Home() {
   };
 
   const handleDoseDue = React.useCallback((med: Medication) => {
+    if (patientId) return; // Don't trigger for patients viewed by caregivers
     const alertId = `${med.id}-${med.nextDoseTime}`;
     if (spokenAlerts.current.has(alertId)) return;
 
@@ -204,13 +238,26 @@ export default function Home() {
     
     spokenAlerts.current.add(alertId);
 
-    setTimeout(() => {
-        if (!user) return;
-        const medDocRef = doc(firestore, 'users', user.uid, 'medications', med.id);
-        updateDocumentNonBlocking(medDocRef, { status: 'Missed' });
-    }, 1000 * 60 * 5);
+    // Automatically mark as missed after 5 minutes if no action is taken
+    setTimeout(async () => {
+        if (!displayUserId) return;
+        const medDocRef = doc(firestore, 'users', displayUserId, 'medications', med.id);
+        const currentMedDoc = await getDoc(medDocRef);
+        if (currentMedDoc.exists() && currentMedDoc.data().status === 'Upcoming') {
+           updateDocumentNonBlocking(medDocRef, { status: 'Missed' });
+            const logEntry: Omit<MedicationLog, 'id'> = {
+                userId: displayUserId,
+                medicationId: med.id,
+                medicationName: med.name,
+                status: 'Missed',
+                timestamp: serverTimestamp() as unknown as string,
+            };
+            addDocumentNonBlocking(collection(firestore, 'users', displayUserId, 'medicationlogs'), logEntry);
+            handleNotifyCaregiver(med.name);
+        }
+    }, 1000 * 60 * 5); // 5 minutes
 
-  }, [toast, user, firestore]);
+  }, [toast, displayUserId, firestore, patientId]);
 
   if (isUserLoading || !user) {
     return (
@@ -230,57 +277,64 @@ export default function Home() {
       : med.prescriptionEndDate
   }));
 
+  const canAddMedication = !patientId;
+
   return (
-    <div className="flex flex-col min-h-screen">
-      <AppHeader />
-      <main className="flex-1 p-4 sm:p-6 md:p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground tracking-tight">Medication Dashboard</h1>
-              <p className="text-muted-foreground mt-1">Your daily medication schedule and tracker.</p>
+    <AppLayout>
+      <div className="flex flex-col min-h-screen">
+        <AppHeader />
+        <main className="flex-1 p-4 sm:p-6 md:p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground tracking-tight">Medication Dashboard</h1>
+                <p className="text-muted-foreground mt-1">Your daily medication schedule and tracker.</p>
+              </div>
             </div>
-          </div>
 
-          {(isMedicationsLoading || processedMedications.length === 0) && (
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {isMedicationsLoading && [...Array(3)].map((_, i) => (
-                    <div key={i} className="flex flex-col space-y-3 p-6 rounded-xl border bg-card">
-                        <Skeleton className="h-6 w-3/5 rounded-md" />
-                        <Skeleton className="h-4 w-4/5 rounded-md" />
-                        <div className="pt-4 space-y-4">
-                           <Skeleton className="h-10 w-full rounded-md" />
-                           <Skeleton className="h-16 w-full rounded-md" />
-                        </div>
-                    </div>
+            {(isMedicationsLoading || processedMedications.length === 0) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {isMedicationsLoading && [...Array(3)].map((_, i) => (
+                      <div key={i} className="flex flex-col space-y-3 p-6 rounded-xl border bg-card">
+                          <Skeleton className="h-6 w-3/5 rounded-md" />
+                          <Skeleton className="h-4 w-4/5 rounded-md" />
+                          <div className="pt-4 space-y-4">
+                            <Skeleton className="h-10 w-full rounded-md" />
+                            <Skeleton className="h-16 w-full rounded-md" />
+                          </div>
+                      </div>
+                  ))}
+              </div>
+            )}
+
+            {!isMedicationsLoading && processedMedications.length === 0 && <EmptyState onAdd={handleOpenAddDialog} />}
+            
+            {!isMedicationsLoading && processedMedications.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {processedMedications.map(med => (
+                  <MedicationCard 
+                      key={med.id} 
+                      medication={med as Medication}
+                      onStatusChange={handleStatusChange} 
+                      onDoseDue={() => handleDoseDue(med as Medication)}
+                      onNotifyCaregiver={() => handleNotifyCaregiver(med.name)}
+                      onDelete={handleDeleteMedication}
+                      isCaregiverView={!!patientId}
+                  />
                 ))}
-             </div>
-          )}
-
-          {!isMedicationsLoading && processedMedications.length === 0 && <EmptyState onAdd={handleOpenAddDialog} />}
-          
-          {!isMedicationsLoading && processedMedications.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {processedMedications.map(med => (
-                <MedicationCard 
-                    key={med.id} 
-                    medication={med as Medication}
-                    onStatusChange={handleStatusChange} 
-                    onDoseDue={() => handleDoseDue(med as Medication)}
-                    onNotifyCaregiver={() => handleNotifyCaregiver(med.name)}
-                    onDelete={handleDeleteMedication}
-                />
-              ))}
-              <AddMedicationCard onAdd={handleOpenAddDialog} />
-            </div>
-          )}
-        </div>
-      </main>
-      <AddPrescriptionDialog
-        open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
-        onAddMedication={handleAddMedication}
-      />
-    </div>
+                {canAddMedication && <AddMedicationCard onAdd={handleOpenAddDialog} />}
+              </div>
+            )}
+          </div>
+        </main>
+        {canAddMedication && <AddPrescriptionDialog
+          open={isAddDialogOpen}
+          onOpenChange={setIsAddDialogOpen}
+          onAddMedication={handleAddMedication}
+        />}
+      </div>
+    </AppLayout>
   );
 }
+
+    

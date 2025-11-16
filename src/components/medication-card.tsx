@@ -29,9 +29,10 @@ interface MedicationCardProps {
   onDoseDue: () => void;
   onNotifyCaregiver: () => void;
   onDelete: (id: string) => void;
+  isCaregiverView?: boolean;
 }
 
-export function MedicationCard({ medication, onStatusChange, onDoseDue, onNotifyCaregiver, onDelete }: MedicationCardProps) {
+export function MedicationCard({ medication, onStatusChange, onDoseDue, onNotifyCaregiver, onDelete, isCaregiverView = false }: MedicationCardProps) {
   const { hours, minutes, seconds, isDue } = useCountdown(medication.nextDoseDate);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 
@@ -84,31 +85,33 @@ export function MedicationCard({ medication, onStatusChange, onDoseDue, onNotify
                     </CardDescription>
                 )}
             </div>
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                    <Trash2 className="h-4 w-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the medication
-                    and all of its history.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => onDelete(medication.id)}
-                    className="bg-destructive hover:bg-destructive/90"
-                  >
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            {!isCaregiverView && (
+              <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                      <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete the medication
+                      and all of its history.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => onDelete(medication.id)}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
         </div>
       </CardHeader>
       <CardContent className="flex-grow flex flex-col justify-center">
@@ -121,7 +124,7 @@ export function MedicationCard({ medication, onStatusChange, onDoseDue, onNotify
         </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
-        {medication.status !== 'Missed' && !!medication.nextDoseDate && (
+        {!isCaregiverView && medication.status !== 'Missed' && !!medication.nextDoseDate && (
              <RadioGroup
                 value={medication.status}
                 onValueChange={(value) => onStatusChange(medication.id, value as MedicationStatus)}
@@ -142,7 +145,7 @@ export function MedicationCard({ medication, onStatusChange, onDoseDue, onNotify
                 </Label>
              </RadioGroup>
         )}
-        {medication.status === 'Missed' && (
+        {!isCaregiverView && medication.status === 'Missed' && (
             <Button variant="outline" className="w-full border-accent text-accent-foreground hover:bg-accent/80" onClick={onNotifyCaregiver}>
                 <Bell className="mr-2 h-4 w-4" />
                 Notify Caregiver
@@ -152,3 +155,5 @@ export function MedicationCard({ medication, onStatusChange, onDoseDue, onNotify
     </Card>
   );
 }
+
+    
